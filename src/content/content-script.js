@@ -13,6 +13,7 @@ class BBContentManager {
     this.processedLinks = new Set();
     this.summaryCache = new Map();
     this.summaryLoadingStatus = new Map(); // url -> 'loading' | 'ready' | 'error'
+    this.summarizedClickbait = new Set(); // urls with summary ready
     this.observer = null;
     this.tooltip = null;
     this.isScanning = false;
@@ -37,27 +38,103 @@ class BBContentManager {
   }
 
   /**
-   * Safely send a message to the background service worker with context validation.
+   * Safely send a message to the background service worker with context validation,
+   * timeout handling, and automatic retry.
    * @param {Object} message - The message to send
+   * @param {Object} options - Options for retry and timeout
+   * @param {number} options.timeout - Timeout in ms (default: 45000)
+   * @param {number} options.maxRetries - Max retry attempts (default: 2)
+   * @param {number} options.retryDelay - Delay between retries in ms (default: 1000)
    * @returns {Promise<any>} Response from service worker
-   * @throws {Error} Throws CONTEXT_INVALIDATED error if extension context is invalid
+   * @throws {Error} Throws CONTEXT_INVALIDATED, TIMEOUT, or MESSAGE_CHANNEL_CLOSED errors
    */
-  async safeRuntimeMessage(message) {
+  async safeRuntimeMessage(message, options = {}) {
+    const {
+      timeout = 45000,      // 45 seconds - longer than service worker timeout
+      maxRetries = 2,       // Retry twice if channel closes
+      retryDelay = 1000     // Wait 1s between retries
+    } = options;
+
+    // Validate context before attempting
     if (!this.isExtensionContextValid()) {
       this.contextInvalidated = true;
       throw new Error('CONTEXT_INVALIDATED');
     }
 
-    try {
-      return await chrome.runtime.sendMessage(message);
-    } catch (error) {
-      // Check if error is due to context invalidation
-      if (error.message && error.message.includes('Extension context invalidated')) {
-        this.contextInvalidated = true;
-        throw new Error('CONTEXT_INVALIDATED');
+    let lastError = null;
+
+    // Retry loop
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      if (attempt > 0) {
+        console.log(`BaitBreaker: Retry attempt ${attempt}/${maxRetries} for action: ${message.action}`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+
+        // Re-check context before retry
+        if (!this.isExtensionContextValid()) {
+          this.contextInvalidated = true;
+          throw new Error('CONTEXT_INVALIDATED');
+        }
       }
-      throw error;
+
+      try {
+        // Race between the actual message and a timeout
+        const response = await Promise.race([
+          chrome.runtime.sendMessage(message),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('TIMEOUT')), timeout)
+          )
+        ]);
+
+        // Success!
+        return response;
+
+      } catch (error) {
+        lastError = error;
+
+        // Check for specific error types
+        const errorMsg = error.message || '';
+
+        // Context invalidation - don't retry
+        if (errorMsg.includes('Extension context invalidated')) {
+          this.contextInvalidated = true;
+          throw new Error('CONTEXT_INVALIDATED');
+        }
+
+        // Message channel closed - service worker died, retry might help
+        if (errorMsg.includes('message channel closed') ||
+            errorMsg.includes('message port closed') ||
+            errorMsg.includes('receiving end does not exist')) {
+          console.warn(`BaitBreaker: Message channel closed (attempt ${attempt + 1}/${maxRetries + 1})`);
+
+          // If this is not the last attempt, continue to retry
+          if (attempt < maxRetries) {
+            continue;
+          }
+
+          // Last attempt failed - throw specific error
+          throw new Error('MESSAGE_CHANNEL_CLOSED');
+        }
+
+        // Timeout - maybe service worker is slow, retry might help
+        if (errorMsg === 'TIMEOUT') {
+          console.warn(`BaitBreaker: Operation timed out after ${timeout}ms (attempt ${attempt + 1}/${maxRetries + 1})`);
+
+          // If this is not the last attempt, continue to retry
+          if (attempt < maxRetries) {
+            continue;
+          }
+
+          // Last attempt timed out
+          throw new Error('TIMEOUT');
+        }
+
+        // Unknown error - don't retry
+        throw error;
+      }
     }
+
+    // Should never reach here, but just in case
+    throw lastError || new Error('Unknown error in safeRuntimeMessage');
   }
 
   /**
@@ -78,6 +155,30 @@ class BBContentManager {
 
     // Mark all existing badges as inactive
     this.markBadgesAsInactive();
+  }
+
+  /**
+   * Handle service worker timeout or crash.
+   * @param {HTMLElement} anchor - Element to anchor the message to
+   * @param {string} linkText - Text of the link being processed
+   * @param {string} errorType - Type of error (TIMEOUT or MESSAGE_CHANNEL_CLOSED)
+   */
+  handleServiceWorkerFailure(anchor, linkText, errorType) {
+    console.error(`BaitBreaker: Service worker failure (${errorType})`);
+
+    let message;
+    if (errorType === 'TIMEOUT') {
+      message = '⏱️ Request timed out. The AI service may be slow or unavailable. Try refreshing the page.';
+    } else if (errorType === 'MESSAGE_CHANNEL_CLOSED') {
+      message = '⚠️ Connection lost to extension service. The extension may need to be restarted or the page refreshed.';
+    } else {
+      message = '❌ Unable to connect to extension service. Please refresh this page.';
+    }
+
+    this.showSummary(anchor, message, {
+      linkText: linkText || 'Error',
+      domain: 'BaitBreaker Extension'
+    });
   }
 
   /**
@@ -147,6 +248,15 @@ class BBContentManager {
     return true;
   }
 
+  // Eligibility without considering whether we've processed it yet
+  isEligibleLink(link) {
+    const text = (link.textContent || '').trim();
+    if (!text || text.length < 10) return false;
+    const href = link.href;
+    if (!href || href.startsWith('#')) return false;
+    return true;
+  }
+
   async processLinks(links) {
     if (!links.length) return;
     const linkData = links.map(link => ({
@@ -158,7 +268,9 @@ class BBContentManager {
     try {
       const results = await this.safeRuntimeMessage({
         action: 'classifyLinks',
-        links: linkData.map(l => ({ text: l.text, href: l.href }))
+        links: linkData.map(l => ({ text: l.text, href: l.href })),
+        detectionMode: this.settings?.detectionMode || 'simple-regex',
+        sensitivity: this.settings?.sensitivity ?? 5
       });
 
       // Check if we got an error response
@@ -181,13 +293,22 @@ class BBContentManager {
         this.processedLinks.add(linkData[index].element);
       });
     } catch (error) {
+      const errorType = error.message;
+
       // Check if error is due to context invalidation
-      if (error.message === 'CONTEXT_INVALIDATED') {
+      if (errorType === 'CONTEXT_INVALIDATED') {
         console.warn('BaitBreaker: Cannot classify links - extension context invalidated');
-        // Mark existing badges as inactive
         this.markBadgesAsInactive();
         return;
       }
+
+      // Check if error is due to service worker failure
+      if (errorType === 'MESSAGE_CHANNEL_CLOSED' || errorType === 'TIMEOUT') {
+        console.warn(`BaitBreaker: Cannot classify links - service worker ${errorType.toLowerCase()}`);
+        // Don't mark badges as inactive - this might be temporary
+        return;
+      }
+
       console.error('BaitBreaker: Failed to classify links:', error);
     }
   }
@@ -227,18 +348,37 @@ class BBContentManager {
       } else {
         this.summaryLoadingStatus.set(url, 'ready');
         this.summaryCache.set(url, response);
+        this.summarizedClickbait.add(url);
 
         // Update indicator visual state to darker purple
         indicator.classList.add('bb-summary-ready');
       }
     } catch (e) {
+      const errorType = e.message;
+
       // Check if error is due to context invalidation
-      if (e.message === 'CONTEXT_INVALIDATED') {
+      if (errorType === 'CONTEXT_INVALIDATED') {
         console.warn('BaitBreaker: Cannot prefetch summary - extension context invalidated');
         this.summaryLoadingStatus.set(url, 'error');
         this.summaryCache.set(url, '⚠️ Extension was reloaded. Please refresh this page.');
         return;
       }
+
+      // Check if error is due to service worker failure
+      if (errorType === 'MESSAGE_CHANNEL_CLOSED') {
+        console.warn('BaitBreaker: Cannot prefetch summary - message channel closed');
+        this.summaryLoadingStatus.set(url, 'error');
+        this.summaryCache.set(url, '⚠️ Connection lost to extension service. Hover to retry.');
+        return;
+      }
+
+      if (errorType === 'TIMEOUT') {
+        console.warn('BaitBreaker: Cannot prefetch summary - timeout');
+        this.summaryLoadingStatus.set(url, 'error');
+        this.summaryCache.set(url, '⏱️ Request timed out. Hover to retry.');
+        return;
+      }
+
       console.error('BaitBreaker: Background summary failed:', e);
       this.summaryLoadingStatus.set(url, 'error');
     }
@@ -289,12 +429,23 @@ class BBContentManager {
           });
         }
       } catch (e) {
+        const errorType = e.message;
+
         // Check if error is due to context invalidation
-        if (e.message === 'CONTEXT_INVALIDATED') {
+        if (errorType === 'CONTEXT_INVALIDATED') {
           console.error('BaitBreaker: Failed to get summary:', e);
           this.handleContextInvalidation(indicator, linkText);
           return;
         }
+
+        // Check if error is due to service worker failure
+        if (errorType === 'MESSAGE_CHANNEL_CLOSED' || errorType === 'TIMEOUT') {
+          console.error('BaitBreaker: Failed to get summary:', e);
+          this.handleServiceWorkerFailure(indicator, linkText, errorType);
+          return;
+        }
+
+        // Unknown error
         console.error('BaitBreaker: Failed to get summary:', e);
         this.showSummary(indicator, 'Could not summarize this article.', {
           linkText: linkText,
@@ -321,6 +472,7 @@ class BBContentManager {
         this.processedLinks.clear();
         this.summaryLoadingStatus.clear();
         this.clickbaitCount = 0;
+        this.summarizedClickbait.clear();
       }
       // If extension was re-enabled, rescan
       else {
@@ -328,11 +480,28 @@ class BBContentManager {
       }
     }
     else if (msg?.action === 'getMetrics') {
-      // Return metrics for this page
-      sendResponse({
-        linksProcessed: this.processedLinks.size,
-        clickbaitDetected: this.clickbaitCount
-      });
+      // Compute detected links from all eligible anchors on the page (independent of processing state)
+      try {
+        const allAnchors = Array.from(document.querySelectorAll('a[href]'));
+        const detectedLinks = allAnchors
+          .filter(a => this.isEligibleLink(a))
+          .map(a => ({ text: (a.textContent || '').trim(), href: a.href }));
+
+        // Return metrics for this page
+        sendResponse({
+          linksProcessed: this.processedLinks.size,
+          clickbaitDetected: this.clickbaitCount,
+          linksDetected: detectedLinks.length,
+          detectedLinks,
+          clickbaitSummarized: this.summarizedClickbait.size
+        });
+      } catch (e) {
+        // Fallback in case anything goes wrong
+        sendResponse({
+          linksProcessed: this.processedLinks.size,
+          clickbaitDetected: this.clickbaitCount
+        });
+      }
       return true; // Indicate async response
     }
 

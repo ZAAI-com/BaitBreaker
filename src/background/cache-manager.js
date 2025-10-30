@@ -75,6 +75,21 @@ export class CacheManager {
     return { success: true, cleared: cacheKeys.length };
   }
 
+  async getStats() {
+    const all = await chrome.storage.local.get();
+    let classification = 0;
+    let summary = 0;
+    for (const value of Object.values(all)) {
+      if (value?.type === 'classification') classification++;
+      else if (value?.type === 'summary') summary++;
+    }
+    return {
+      classification,
+      summary,
+      total: classification + summary
+    };
+  }
+
   async enforceMaxSize() {
     const all = await chrome.storage.local.get();
     const entries = Object.entries(all).map(([key, value]) => ({ key, value }));

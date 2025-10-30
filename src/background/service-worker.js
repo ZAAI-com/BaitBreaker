@@ -2,6 +2,7 @@
 import { AIManager } from './ai-manager.js';
 import { CacheManager } from './cache-manager.js';
 import { ArticleFetcher } from './article-fetcher.js';
+import { regexDetect } from '../content/clickbait-detector.js';
 
 class BaitBreakerService {
   constructor() {
@@ -20,7 +21,8 @@ class BaitBreakerService {
 
     console.log('BaitBreaker: Starting aggressive keepalive');
 
-    // Ping every 10 seconds (well within 30s service worker timeout)
+    // Ping every 5 seconds during active operations (previously 10s - too slow)
+    // Chrome can terminate service workers after 30s, so we need frequent pings
     let pingCount = 0;
     this.keepaliveInterval = setInterval(() => {
       pingCount++;
@@ -35,7 +37,10 @@ class BaitBreakerService {
       if (chrome.runtime && chrome.runtime.id) {
         // Still alive
       }
-    }, 10000);
+
+      // Method 3: Update timestamp to track last activity
+      chrome.storage.local.set({ '_lastKeepalive': Date.now() });
+    }, 5000); // Reduced from 10000 to 5000 for more aggressive keepalive
   }
 
   stopKeepalive() {
@@ -63,8 +68,8 @@ class BaitBreakerService {
   async handleMessage(request) {
     console.log('BaitBreaker: Received message:', request.action);
 
-    // Check if service is initialized
-    if (!this.initialized && request.action !== 'clearCache') {
+    // Check if service is initialized (allow cache-related actions regardless)
+    if (!this.initialized && request.action !== 'clearCache' && request.action !== 'getCacheStats') {
       const errorMsg = this.initError
         ? `Service failed to initialize: ${this.initError.message}`
         : 'Service not initialized. Chrome AI APIs may not be available.';
@@ -81,13 +86,16 @@ class BaitBreakerService {
       let result;
       switch (request.action) {
         case 'classifyLinks':
-          result = await this.classifyMultipleLinksWithTimeout(request.links);
+          result = await this.classifyMultipleLinksWithTimeout(request.links, request.detectionMode, request.sensitivity);
           break;
         case 'getSummary':
           result = await this.getSummaryWithTimeout(request.url);
           break;
         case 'clearCache':
           result = await this.cacheManager.clearAll();
+          break;
+        case 'getCacheStats':
+          result = await this.cacheManager.getStats();
           break;
         default:
           console.warn('BaitBreaker: Unknown action:', request.action);
@@ -106,7 +114,7 @@ class BaitBreakerService {
 
   // Timeout wrapper for classifyLinks to prevent indefinite hangs
   // Dynamic timeout based on number of links: ~8 seconds per link with concurrency
-  async classifyMultipleLinksWithTimeout(links) {
+  async classifyMultipleLinksWithTimeout(links, detectionMode = 'simple-regex', sensitivity = 5) {
     // Base timeout: 30s + 5s per link (accounting for 5-concurrent processing)
     // This gives plenty of room: 10 links = 30 + 50 = 80 seconds
     const TIMEOUT_MS = Math.max(30000, 30000 + (links.length * 5000));
@@ -114,7 +122,7 @@ class BaitBreakerService {
     console.log(`BaitBreaker: Setting classification timeout to ${TIMEOUT_MS}ms for ${links.length} links`);
 
     return Promise.race([
-      this.classifyMultipleLinks(links),
+      this.classifyMultipleLinks(links, detectionMode, sensitivity),
       new Promise((_, reject) =>
         setTimeout(() => reject(new Error(`Classification timed out after ${TIMEOUT_MS}ms`)), TIMEOUT_MS)
       )
@@ -133,8 +141,8 @@ class BaitBreakerService {
     ]);
   }
 
-  async classifyMultipleLinks(links) {
-    console.log(`BaitBreaker: Classifying ${links.length} links`);
+  async classifyMultipleLinks(links, detectionMode = 'simple-regex', sensitivity = 5) {
+    console.log(`BaitBreaker: Classifying ${links.length} links (mode=${detectionMode}, sensitivity=${sensitivity})`);
 
     // Process links in parallel with concurrency limit to improve performance
     // while not overwhelming the AI service
@@ -143,16 +151,26 @@ class BaitBreakerService {
     const classifyLink = async (link) => {
       try {
         const cached = await this.cacheManager.getClassification(link.text);
-        if (cached) {
+        if (cached && detectionMode === 'chrome-ai') {
           console.log('BaitBreaker: Using cached classification for:', link.text.substring(0, 50));
           return cached;
         } else {
-          console.log('BaitBreaker: Classifying:', link.text.substring(0, 50));
-          const classification = await this.aiManager.classifyClickbait(link.text);
-          await this.cacheManager.saveClassification(link.text, classification);
-          console.log('BaitBreaker: Result:', classification.isClickbait ? 'CLICKBAIT' : 'NOT CLICKBAIT',
-                     `(${Math.round(classification.confidence * 100)}%)`);
-          return classification;
+          if (detectionMode === 'simple-regex') {
+            const result = regexDetect(link.text);
+            console.log('BaitBreaker: RegEx result:', result.isClickbait ? 'CLICKBAIT' : 'NOT CLICKBAIT',
+                        `(${Math.round((result.confidence || 0) * 100)}%)`);
+            return result;
+          } else {
+            console.log('BaitBreaker: Classifying (AI):', link.text.substring(0, 50));
+            const classification = await this.aiManager.classifyClickbait(link.text);
+            await this.cacheManager.saveClassification(link.text, classification);
+            const threshold = Math.max(1, Math.min(10, Number(sensitivity) || 5)) / 10;
+            const isClickbait = (classification.confidence || 0) >= threshold && !!classification.isClickbait;
+            const adjusted = { ...classification, isClickbait };
+            console.log('BaitBreaker: AI result:', adjusted.isClickbait ? 'CLICKBAIT' : 'NOT CLICKBAIT',
+                        `(${Math.round((adjusted.confidence || 0) * 100)}%)`, `threshold=${Math.round(threshold*100)}%`);
+            return adjusted;
+          }
         }
       } catch (error) {
         console.error('BaitBreaker: Error classifying link:', error);

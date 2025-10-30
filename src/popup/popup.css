@@ -122,6 +122,36 @@ header h1 {
   gap: 12px;
 }
 
+/* Detection Mode */
+.detection-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detection-mode-label {
+  font-size: 13px;
+  color: #555;
+  font-weight: 600;
+}
+
+.detection-mode-options {
+  display: flex;
+  gap: 12px;
+}
+
+.radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #444;
+}
+
+.radio input[type="radio"] {
+  accent-color: #4CAF50;
+}
+
 /* Slider */
 .slider {
   display: flex;
@@ -142,6 +172,7 @@ header h1 {
   background: #e5e5e5;
   outline: none;
   -webkit-appearance: none;
+  appearance: none;
   cursor: pointer;
 }
 
@@ -184,6 +215,11 @@ header h1 {
 
 .advanced-button:active {
   transform: scale(0.98);
+}
+
+/* Utilities */
+.hidden {
+  display: none !important;
 }
 
 /* Model Status */
