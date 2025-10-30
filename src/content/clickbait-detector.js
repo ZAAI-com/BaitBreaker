@@ -1,4 +1,6 @@
 // src/content/clickbait-detector.js
+import { getCompiledRegexPatterns } from '../../config/config.js';
+
 export const CLICKBAIT_PATTERNS = {
   questions: [/^(what|why|how|when|where|who|which)\s/i, /\?$/],
   curiosityGap: [/you won't believe/i, /shocking/i, /this one trick/i, /doctors hate/i, /number \d+ will shock you/i],
@@ -16,22 +18,17 @@ export function heuristicDetect(text) {
   return { isClickbait: reasons.length > 0, confidence: Math.min(0.2 + reasons.length * 0.2, 0.95), reason: reasons.join(', ') };
 }
 
-// Flat regex list for Simple RegEx mode (provided + extras)
-export const CLICKBAIT_REGEXES = [
-  /\b(you won't believe|shocking|revealed|secret|this one trick|this one food|this simple habit|doctors (?:hate|are (?:stunned|shocked))|never guess|what happened next|number \d+ will|will change your life|jaw[- ]?dropping|mind[- ]?blowing|burns fat)\b/i,
-  /^\s*\d+\s+(ways|things|reasons|tips)/i,
-  /\?$/,
-  /^(what|why|how|when|where|who|which)\b/i,
-  /top\s+\d+/i,
-  /unbelievable|insane|crazy|epic|ultimate/i,
-  /can't believe|stop what you're doing|must see/i
-];
+// Get compiled regex patterns from config
+function getRegexPatterns() {
+  return getCompiledRegexPatterns();
+}
 
 export function regexDetect(text) {
   const t = text.trim();
   if (!t) return { isClickbait: false, confidence: 0 };
 
-  const matches = CLICKBAIT_REGEXES.filter(r => r.test(t));
+  const patterns = getRegexPatterns();
+  const matches = patterns.filter(r => r.test(t));
   const isClickbait = matches.length > 0;
   // Confidence scales with number of distinct regex matches
   const confidence = isClickbait ? Math.min(0.3 + matches.length * 0.15, 0.95) : 0;

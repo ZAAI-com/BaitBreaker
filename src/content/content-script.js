@@ -269,7 +269,7 @@ class BBContentManager {
       const results = await this.safeRuntimeMessage({
         action: 'classifyLinks',
         links: linkData.map(l => ({ text: l.text, href: l.href })),
-        detectionMode: this.settings?.detectionMode || 'simple-regex',
+        detectionMode: this.settings?.detectionMode || 'regex',
         sensitivity: this.settings?.sensitivity ?? 5
       });
 

@@ -114,7 +114,7 @@ class BaitBreakerService {
 
   // Timeout wrapper for classifyLinks to prevent indefinite hangs
   // Dynamic timeout based on number of links: ~8 seconds per link with concurrency
-  async classifyMultipleLinksWithTimeout(links, detectionMode = 'simple-regex', sensitivity = 5) {
+  async classifyMultipleLinksWithTimeout(links, detectionMode = 'regex', sensitivity = 5) {
     // Base timeout: 30s + 5s per link (accounting for 5-concurrent processing)
     // This gives plenty of room: 10 links = 30 + 50 = 80 seconds
     const TIMEOUT_MS = Math.max(30000, 30000 + (links.length * 5000));
@@ -141,7 +141,7 @@ class BaitBreakerService {
     ]);
   }
 
-  async classifyMultipleLinks(links, detectionMode = 'simple-regex', sensitivity = 5) {
+  async classifyMultipleLinks(links, detectionMode = 'regex', sensitivity = 5) {
     console.log(`BaitBreaker: Classifying ${links.length} links (mode=${detectionMode}, sensitivity=${sensitivity})`);
 
     // Process links in parallel with concurrency limit to improve performance
@@ -155,7 +155,7 @@ class BaitBreakerService {
           console.log('BaitBreaker: Using cached classification for:', link.text.substring(0, 50));
           return cached;
         } else {
-          if (detectionMode === 'simple-regex') {
+          if (detectionMode === 'regex') {
             const result = regexDetect(link.text);
             console.log('BaitBreaker: RegEx result:', result.isClickbait ? 'CLICKBAIT' : 'NOT CLICKBAIT',
                         `(${Math.round((result.confidence || 0) * 100)}%)`);

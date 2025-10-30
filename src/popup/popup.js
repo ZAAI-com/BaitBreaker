@@ -16,23 +16,23 @@ async function init() {
   enabled.checked = !!settings.enabled;
   sensitivity.value = settings.sensitivity ?? 5;
 
-  // Initialize detection mode (default: simple-regex)
-  const currentDetectionMode = settings.detectionMode || 'simple-regex';
+  // Initialize detection mode (default: regex)
+  const currentDetectionMode = settings.detectionMode || 'regex';
   const modeSimple = document.getElementById('mode-simple');
   const modeAi = document.getElementById('mode-ai');
   if (modeSimple && modeAi) {
-    if (currentDetectionMode === 'simple-regex') {
+    if (currentDetectionMode === 'regex') {
       modeSimple.checked = true;
     } else {
       modeAi.checked = true;
     }
   }
 
-  // Toggle sensitivity visibility based on mode (hide for simple-regex)
+  // Toggle sensitivity visibility based on mode (hide for regex)
   const sensitivitySliderLabel = document.querySelector('.slider');
   function updateSensitivityVisibility(mode) {
     if (!sensitivitySliderLabel) return;
-    if (mode === 'simple-regex') {
+    if (mode === 'regex') {
       sensitivitySliderLabel.classList.add('hidden');
     } else {
       sensitivitySliderLabel.classList.remove('hidden');
@@ -77,7 +77,7 @@ async function init() {
     updateMetrics();
   }
   modeSimple?.addEventListener('change', (e) => {
-    if (e.target && e.target.checked) onModeChange('simple-regex');
+    if (e.target && e.target.checked) onModeChange('regex');
   });
   modeAi?.addEventListener('change', (e) => {
     if (e.target && e.target.checked) onModeChange('chrome-ai');
