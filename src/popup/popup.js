@@ -10,17 +10,13 @@ async function init() {
   const sensitivity = document.getElementById('sensitivity');
   const sensitivityPercent = document.getElementById('sensitivity-percent');
   const clearCacheBtn = document.getElementById('clear-cache');
-  const cacheStats = document.getElementById('cache-stats');
-  const modeSimple = document.getElementById('mode-simple');
-  const modeAi = document.getElementById('mode-ai');
-  const sensitivitySliderLabel = document.querySelector('.advanced-content .slider');
+  const detectionMode = document.getElementById('detection-mode');
+  let metricsTimer = null;
 
   // Set initial values
   enabled.checked = !!settings.enabled;
   sensitivity.value = settings.sensitivity ?? 5;
-  if (sensitivityPercent) {
-    sensitivityPercent.textContent = String((Number(sensitivity.value) || 5) * 10);
-  }
+  if (detectionMode) detectionMode.value = settings.detectionMode || 'simple-regex';
 
   // Initialize detection mode (default: chrome-ai)
   const detectionMode = settings.detectionMode || 'simple-regex';
@@ -56,6 +52,13 @@ async function init() {
     }
   });
 
+  if (detectionMode) {
+    detectionMode.addEventListener('change', async () => {
+      await persist({ ...settings, detectionMode: detectionMode.value });
+      updateMetrics();
+    });
+  }
+
   clearCacheBtn.addEventListener('click', async () => {
     await chrome.runtime.sendMessage({ action: 'clearCache' });
     clearCacheBtn.textContent = 'Cleared!';
@@ -63,7 +66,14 @@ async function init() {
       clearCacheBtn.textContent = 'Clear Cache';
     }, 2000);
     updateMetrics(); // Refresh metrics after clearing cache
-    updateCacheStats(); // Refresh cache count after clearing
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab?.id) {
+        await chrome.tabs.sendMessage(tab.id, { action: 'rescan' });
+      }
+    } catch (e) {
+      // ignore if content script isn't available
+    }
   });
 
   // Mode change listeners
@@ -81,10 +91,12 @@ async function init() {
 
   // Load metrics initially
   await updateMetrics();
-  await updateCacheStats();
+  // Auto-refresh metrics every second while popup is open
+  metricsTimer = setInterval(updateMetrics, 1000);
 
-  // Start real-time updates (every 1 second)
-  startMetricsPolling();
+  window.addEventListener('beforeunload', () => {
+    if (metricsTimer) clearInterval(metricsTimer);
+  });
 
   // Model status
   document.getElementById('model-state').textContent = 'Ready';
@@ -149,13 +161,17 @@ async function updateMetrics() {
       document.getElementById('links-detected').textContent = String(detectedCount);
       document.getElementById('links-processed').textContent = String(response.linksProcessed || 0);
       document.getElementById('clickbait-detected').textContent = String(response.clickbaitDetected || 0);
-    document.getElementById('clickbait-summarized').textContent = String(response.clickbaitSummarized || 0);
+      if (document.getElementById('links-detected')) {
+        document.getElementById('links-detected').textContent = String(response.linksDetected || 0);
+      }
     } else {
       // Content script not loaded or error
       document.getElementById('links-detected').textContent = '0';
       document.getElementById('links-processed').textContent = '0';
       document.getElementById('clickbait-detected').textContent = '0';
-    document.getElementById('clickbait-summarized').textContent = '0';
+      if (document.getElementById('links-detected')) {
+        document.getElementById('links-detected').textContent = '0';
+      }
     }
   } catch (error) {
     // Content script not available on this page (chrome://, extensions page, etc.)
@@ -163,7 +179,9 @@ async function updateMetrics() {
     document.getElementById('links-detected').textContent = '-';
     document.getElementById('links-processed').textContent = '-';
     document.getElementById('clickbait-detected').textContent = '-';
-  document.getElementById('clickbait-summarized').textContent = '-';
+    if (document.getElementById('links-detected')) {
+      document.getElementById('links-detected').textContent = '-';
+    }
   }
 }
 

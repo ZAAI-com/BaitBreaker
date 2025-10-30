@@ -31,8 +31,8 @@
           <span class="stat-label">Clickbait Detected</span>
         </div>
         <div class="stat-item">
-          <span class="stat-value" id="clickbait-summarized">0</span>
-          <span class="stat-label">Clickbait Summarized</span>
+          <span class="stat-value" id="links-detected">0</span>
+          <span class="stat-label">Links Detected</span>
         </div>
       </div>
       
@@ -57,6 +57,14 @@
           <label class="slider">
             <span>Clickbait must be at least at <span id="sensitivity-percent">50</span> % to show the indicator.</span>
             <input type="range" id="sensitivity" min="1" max="10" value="5">
+          </label>
+
+          <label class="select">
+            <span>Detection Mode</span>
+            <select id="detection-mode">
+              <option value="simple-regex">Simple (fast)</option>
+              <option value="chrome-ai">Chrome AI</option>
+            </select>
           </label>
 
           <button id="clear-cache" class="advanced-button">Clear Cache</button>

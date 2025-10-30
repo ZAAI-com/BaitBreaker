@@ -463,6 +463,8 @@ class BBContentManager {
   handleMessage(msg, sender, sendResponse) {
     if (msg?.action === 'settingsUpdated') {
       // Update settings
+      const oldMode = this.settings?.detectionMode;
+      const oldSensitivity = this.settings?.sensitivity;
       this.settings = msg.settings;
       console.log('BaitBreaker: Settings updated', this.settings);
 
@@ -476,33 +478,45 @@ class BBContentManager {
       }
       // If extension was re-enabled, rescan
       else {
+        // Reset state if mode/sensitivity changed
+        if (oldMode !== this.settings.detectionMode || oldSensitivity !== this.settings.sensitivity) {
+          document.querySelectorAll('.bb-indicator').forEach(badge => badge.remove());
+          this.processedLinks.clear();
+          this.summaryLoadingStatus.clear();
+          this.clickbaitCount = 0;
+        }
         this.scanPageForLinks();
       }
     }
     else if (msg?.action === 'getMetrics') {
-      // Compute detected links from all eligible anchors on the page (independent of processing state)
       try {
         const allAnchors = Array.from(document.querySelectorAll('a[href]'));
-        const detectedLinks = allAnchors
-          .filter(a => this.isEligibleLink(a))
-          .map(a => ({ text: (a.textContent || '').trim(), href: a.href }));
+        const linksDetected = allAnchors.filter(a => {
+          const text = (a.textContent || '').trim();
+          const href = a.href;
+          return !!text && text.length >= 10 && !!href && !href.startsWith('#');
+        }).length;
 
-        // Return metrics for this page
         sendResponse({
           linksProcessed: this.processedLinks.size,
           clickbaitDetected: this.clickbaitCount,
-          linksDetected: detectedLinks.length,
-          detectedLinks,
-          clickbaitSummarized: this.summarizedClickbait.size
+          linksDetected
         });
       } catch (e) {
-        // Fallback in case anything goes wrong
         sendResponse({
           linksProcessed: this.processedLinks.size,
           clickbaitDetected: this.clickbaitCount
         });
       }
       return true; // Indicate async response
+    }
+    else if (msg?.action === 'rescan') {
+      document.querySelectorAll('.bb-indicator').forEach(badge => badge.remove());
+      this.processedLinks.clear();
+      this.summaryLoadingStatus.clear();
+      this.clickbaitCount = 0;
+      this.scanPageForLinks();
+      return false;
     }
 
     return false; // Sync response
