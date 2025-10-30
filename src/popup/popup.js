@@ -3,7 +3,6 @@ import { SettingsManager } from '../lib/settings-manager.js';
 import { UI_CONFIG, SENSITIVITY_CONFIG } from '../../config/config.js';
 
 const settingsManager = new SettingsManager();
-let metricsInterval = null;
 
 async function init() {
   const settings = await settingsManager.load();
@@ -72,26 +71,6 @@ async function init() {
   // Model status
   document.getElementById('model-state').textContent = 'Ready';
 }
-
-function startMetricsPolling() {
-  // Clear any existing interval
-  if (metricsInterval) {
-    clearInterval(metricsInterval);
-  }
-
-  // Poll metrics every 1 second for real-time updates
-  metricsInterval = setInterval(() => {
-    updateMetrics();
-    updateModeDisplay();
-  }, UI_CONFIG.METRICS_UPDATE_INTERVAL);
-}
-
-// Clean up interval when popup closes
-window.addEventListener('unload', () => {
-  if (metricsInterval) {
-    clearInterval(metricsInterval);
-  }
-});
 
 async function updateMetrics() {
   try {
