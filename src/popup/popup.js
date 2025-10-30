@@ -90,26 +90,6 @@ function resetMetricsDisplay() {
   setMetricsDisplay('-');
 }
 
-function startMetricsPolling() {
-  // Clear any existing interval
-  if (metricsInterval) {
-    clearInterval(metricsInterval);
-  }
-
-  // Poll metrics every 1 second for real-time updates
-  metricsInterval = setInterval(() => {
-    updateMetrics();
-    updateModeDisplay();
-  }, UI_CONFIG.METRICS_UPDATE_INTERVAL);
-}
-
-// Clean up interval when popup closes
-window.addEventListener('unload', () => {
-  if (metricsInterval) {
-    clearInterval(metricsInterval);
-  }
-});
-
 async function updateMetrics() {
   try {
     // Check if extension is enabled
