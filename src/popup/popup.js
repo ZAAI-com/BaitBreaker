@@ -16,30 +16,13 @@ async function init() {
   // Set initial values
   enabled.checked = !!settings.enabled;
   sensitivity.value = settings.sensitivity ?? SENSITIVITY_CONFIG.DEFAULT;
-
-  // Initialize detection mode (default: regex)
-  const currentDetectionMode = settings.detectionMode || 'regex';
-  const modeSimple = document.getElementById('mode-simple');
-  const modeAi = document.getElementById('mode-ai');
-  if (modeSimple && modeAi) {
-    if (currentDetectionMode === 'regex') {
-      modeSimple.checked = true;
-    } else {
-      modeAi.checked = true;
-    }
-  }
-
-  // Toggle sensitivity visibility based on mode (hide for regex)
+  
+  // Detection mode is preset to 'regex' in config, no need for switch
+  // Hide sensitivity slider since it only applies to Chrome AI mode
   const sensitivitySliderLabel = document.querySelector('.slider');
-  function updateSensitivityVisibility(mode) {
-    if (!sensitivitySliderLabel) return;
-    if (mode === 'regex') {
-      sensitivitySliderLabel.classList.add('hidden');
-    } else {
-      sensitivitySliderLabel.classList.remove('hidden');
-    }
+  if (sensitivitySliderLabel) {
+    sensitivitySliderLabel.classList.add('hidden');
   }
-  updateSensitivityVisibility(currentDetectionMode);
 
   // Add event listeners
   enabled.addEventListener('change', async () => {
@@ -71,23 +54,16 @@ async function init() {
     }
   });
 
-  // Mode change listeners
-  function onModeChange(mode) {
-    updateSensitivityVisibility(mode);
-    persist({ ...settings, detectionMode: mode });
-    updateMetrics();
-  }
-  modeSimple?.addEventListener('change', (e) => {
-    if (e.target && e.target.checked) onModeChange('regex');
-  });
-  modeAi?.addEventListener('change', (e) => {
-    if (e.target && e.target.checked) onModeChange('chrome-ai');
-  });
+  // Detection mode is fixed to 'regex', no mode change listeners needed
 
-  // Load metrics initially
+  // Load metrics and mode display initially
   await updateMetrics();
+  await updateModeDisplay();
   // Auto-refresh metrics every second while popup is open
-  metricsTimer = setInterval(updateMetrics, UI_CONFIG.METRICS_UPDATE_INTERVAL);
+  metricsTimer = setInterval(async () => {
+    await updateMetrics();
+    await updateModeDisplay();
+  }, UI_CONFIG.METRICS_UPDATE_INTERVAL);
 
   window.addEventListener('beforeunload', () => {
     if (metricsTimer) clearInterval(metricsTimer);
@@ -106,7 +82,7 @@ function startMetricsPolling() {
   // Poll metrics every 1 second for real-time updates
   metricsInterval = setInterval(() => {
     updateMetrics();
-    updateCacheStats();
+    updateModeDisplay();
   }, UI_CONFIG.METRICS_UPDATE_INTERVAL);
 }
 
@@ -180,18 +156,27 @@ async function persist(newSettings) {
 
 document.addEventListener('DOMContentLoaded', init);
 
-async function updateCacheStats() {
+async function updateModeDisplay() {
   try {
     const stats = await chrome.runtime.sendMessage({ action: 'getCacheStats' });
-    const el = document.getElementById('cache-stats');
-    if (!el) return;
+    const detectionCacheEl = document.getElementById('detection-cache-count');
+    const summarizationCacheEl = document.getElementById('summarization-cache-count');
+    
     if (stats && !stats.error) {
-      el.textContent = `Cache storage contains ${stats.classification} classification results and ${stats.summary} article summaries.`;
+      if (detectionCacheEl) {
+        detectionCacheEl.textContent = String(stats.classification || 0);
+      }
+      if (summarizationCacheEl) {
+        summarizationCacheEl.textContent = String(stats.summary || 0);
+      }
     } else {
-      el.textContent = 'Cache entries: -';
+      if (detectionCacheEl) detectionCacheEl.textContent = '-';
+      if (summarizationCacheEl) summarizationCacheEl.textContent = '-';
     }
   } catch (e) {
-    const el = document.getElementById('cache-stats');
-    if (el) el.textContent = 'Cache entries: -';
+    const detectionCacheEl = document.getElementById('detection-cache-count');
+    const summarizationCacheEl = document.getElementById('summarization-cache-count');
+    if (detectionCacheEl) detectionCacheEl.textContent = '-';
+    if (summarizationCacheEl) summarizationCacheEl.textContent = '-';
   }
 }

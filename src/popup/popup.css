@@ -122,34 +122,28 @@ header h1 {
   gap: 12px;
 }
 
-/* Detection Mode */
-.detection-mode {
+/* Mode Info Display */
+.mode-info {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
 }
 
-.detection-mode-label {
+.mode-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mode-info-label {
   font-size: 13px;
   color: #555;
   font-weight: 600;
 }
 
-.detection-mode-options {
-  display: flex;
-  gap: 12px;
-}
-
-.radio {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.mode-info-value {
   font-size: 13px;
   color: #444;
-}
-
-.radio input[type="radio"] {
-  accent-color: #4CAF50;
 }
 
 /* Slider */
