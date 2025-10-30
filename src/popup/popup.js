@@ -1,5 +1,6 @@
 // src/popup/popup.js
 import { SettingsManager } from '../lib/settings-manager.js';
+import { UI_CONFIG, SENSITIVITY_CONFIG } from '../../config/config.js';
 
 const settingsManager = new SettingsManager();
 let metricsInterval = null;
@@ -14,7 +15,7 @@ async function init() {
 
   // Set initial values
   enabled.checked = !!settings.enabled;
-  sensitivity.value = settings.sensitivity ?? 5;
+  sensitivity.value = settings.sensitivity ?? SENSITIVITY_CONFIG.DEFAULT;
 
   // Initialize detection mode (default: regex)
   const currentDetectionMode = settings.detectionMode || 'regex';
@@ -49,7 +50,7 @@ async function init() {
   sensitivity.addEventListener('input', () => {
     persist({ ...settings, sensitivity: Number(sensitivity.value) });
     if (sensitivityPercent) {
-      sensitivityPercent.textContent = String((Number(sensitivity.value) || 5) * 10);
+      sensitivityPercent.textContent = String((Number(sensitivity.value) || SENSITIVITY_CONFIG.DEFAULT) * 10);
     }
   });
 
@@ -58,7 +59,7 @@ async function init() {
     clearCacheBtn.textContent = 'Cleared!';
     setTimeout(() => {
       clearCacheBtn.textContent = 'Clear Cache';
-    }, 2000);
+    }, UI_CONFIG.CLEAR_CACHE_TIMEOUT);
     updateMetrics(); // Refresh metrics after clearing cache
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -86,7 +87,7 @@ async function init() {
   // Load metrics initially
   await updateMetrics();
   // Auto-refresh metrics every second while popup is open
-  metricsTimer = setInterval(updateMetrics, 1000);
+  metricsTimer = setInterval(updateMetrics, UI_CONFIG.METRICS_UPDATE_INTERVAL);
 
   window.addEventListener('beforeunload', () => {
     if (metricsTimer) clearInterval(metricsTimer);
@@ -106,7 +107,7 @@ function startMetricsPolling() {
   metricsInterval = setInterval(() => {
     updateMetrics();
     updateCacheStats();
-  }, 1000);
+  }, UI_CONFIG.METRICS_UPDATE_INTERVAL);
 }
 
 // Clean up interval when popup closes

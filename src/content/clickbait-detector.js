@@ -1,5 +1,5 @@
 // src/content/clickbait-detector.js
-import { getCompiledRegexPatterns } from '../../config/config.js';
+import { getCompiledRegexPatterns, CONFIDENCE_CONFIG } from '../../config/config.js';
 
 export const CLICKBAIT_PATTERNS = {
   questions: [/^(what|why|how|when|where|who|which)\s/i, /\?$/],
@@ -15,7 +15,10 @@ export function heuristicDetect(text) {
   if (CLICKBAIT_PATTERNS.curiosityGap.some(r => r.test(t))) reasons.push('curiosity gap');
   if (CLICKBAIT_PATTERNS.emotional.some(r => r.test(t))) reasons.push('emotional language');
   if (CLICKBAIT_PATTERNS.listicles.some(r => r.test(t))) reasons.push('listicle');
-  return { isClickbait: reasons.length > 0, confidence: Math.min(0.2 + reasons.length * 0.2, 0.95), reason: reasons.join(', ') };
+  const confidence = reasons.length > 0 
+    ? Math.min(CONFIDENCE_CONFIG.HEURISTIC.BASE + reasons.length * CONFIDENCE_CONFIG.HEURISTIC.MULTIPLIER, CONFIDENCE_CONFIG.HEURISTIC.MAX)
+    : 0;
+  return { isClickbait: reasons.length > 0, confidence, reason: reasons.join(', ') };
 }
 
 // Get compiled regex patterns from config
@@ -31,6 +34,8 @@ export function regexDetect(text) {
   const matches = patterns.filter(r => r.test(t));
   const isClickbait = matches.length > 0;
   // Confidence scales with number of distinct regex matches
-  const confidence = isClickbait ? Math.min(0.3 + matches.length * 0.15, 0.95) : 0;
+  const confidence = isClickbait 
+    ? Math.min(CONFIDENCE_CONFIG.REGEX.BASE + matches.length * CONFIDENCE_CONFIG.REGEX.MULTIPLIER, CONFIDENCE_CONFIG.REGEX.MAX)
+    : 0;
   return { isClickbait, confidence };
 }

@@ -1,8 +1,10 @@
 // src/lib/error-reporter.js
+import { PERFORMANCE_CONFIG } from '../../config/config.js';
+
 export class ErrorReporter {
   constructor() {
     this.queue = [];
-    this.maxQueueSize = 50;
+    this.maxQueueSize = PERFORMANCE_CONFIG.ERROR_QUEUE_MAX_SIZE;
   }
   captureError(error, context = {}) {
     const errorInfo = {

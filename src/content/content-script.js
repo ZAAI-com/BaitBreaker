@@ -1,6 +1,8 @@
 // src/content/content-script.js
 // Content scripts run as classic scripts (not modules) per manifest; avoid imports.
 // Minimal self-contained implementation using window-scoped helpers.
+// Note: Webpack bundles this, so imports are allowed at build time.
+import { TIMEOUT_CONFIG, RETRY_CONFIG, PERFORMANCE_CONFIG, SENSITIVITY_CONFIG } from '../../config/config.js';
 
 // Check if chrome extension APIs are available
 if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.sendMessage) {
@@ -50,9 +52,9 @@ class BBContentManager {
    */
   async safeRuntimeMessage(message, options = {}) {
     const {
-      timeout = 45000,      // 45 seconds - longer than service worker timeout
-      maxRetries = 2,       // Retry twice if channel closes
-      retryDelay = 1000     // Wait 1s between retries
+      timeout = TIMEOUT_CONFIG.MESSAGE,      // Message timeout from config
+      maxRetries = RETRY_CONFIG.MAX_RETRIES,  // Max retries from config
+      retryDelay = RETRY_CONFIG.RETRY_DELAY   // Retry delay from config
     } = options;
 
     // Validate context before attempting
@@ -197,7 +199,7 @@ class BBContentManager {
 
     // Load settings
     const stored = await chrome.storage.sync.get('settings');
-    this.settings = stored?.settings || { enabled: true, sensitivity: 5 };
+    this.settings = stored?.settings || { enabled: true, sensitivity: SENSITIVITY_CONFIG.DEFAULT };
 
     // Only scan if enabled
     if (this.settings.enabled !== false) {
@@ -270,7 +272,7 @@ class BBContentManager {
         action: 'classifyLinks',
         links: linkData.map(l => ({ text: l.text, href: l.href })),
         detectionMode: this.settings?.detectionMode || 'regex',
-        sensitivity: this.settings?.sensitivity ?? 5
+        sensitivity: this.settings?.sensitivity ?? SENSITIVITY_CONFIG.DEFAULT
       });
 
       // Check if we got an error response
@@ -555,7 +557,7 @@ class BBContentManager {
         </div>
       </div>`;
     t.querySelector('.bb-link-title').textContent = meta.linkText || 'Article';
-    t.querySelector('.bb-summary').textContent = String(summary || '').slice(0, 1000);
+    t.querySelector('.bb-summary').textContent = String(summary || '').slice(0, PERFORMANCE_CONFIG.TOOLTIP_SUMMARY_LIMIT);
     this.positionTooltip(t, anchor);
     document.body.appendChild(t);
     this.tooltip = t;
@@ -582,7 +584,7 @@ class BBContentManager {
       }
       this.scanTimeout = setTimeout(() => {
         this.scanPageForLinks();
-      }, 500); // Wait 500ms after last mutation before scanning
+      }, RETRY_CONFIG.DEBOUNCE_DELAY); // Debounce delay from config
     });
     this.observer.observe(document.documentElement, { childList: true, subtree: true });
   }

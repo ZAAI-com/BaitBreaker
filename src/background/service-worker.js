@@ -3,6 +3,7 @@ import { AIManager } from './ai-manager.js';
 import { CacheManager } from './cache-manager.js';
 import { ArticleFetcher } from './article-fetcher.js';
 import { regexDetect } from '../content/clickbait-detector.js';
+import { TIMEOUT_CONFIG, PERFORMANCE_CONFIG, SENSITIVITY_CONFIG, getClassificationTimeout } from '../../config/config.js';
 
 class BaitBreakerService {
   constructor() {
@@ -40,7 +41,7 @@ class BaitBreakerService {
 
       // Method 3: Update timestamp to track last activity
       chrome.storage.local.set({ '_lastKeepalive': Date.now() });
-    }, 5000); // Reduced from 10000 to 5000 for more aggressive keepalive
+    }, TIMEOUT_CONFIG.KEEPALIVE_INTERVAL); // Keepalive ping interval
   }
 
   stopKeepalive() {
@@ -114,10 +115,9 @@ class BaitBreakerService {
 
   // Timeout wrapper for classifyLinks to prevent indefinite hangs
   // Dynamic timeout based on number of links: ~8 seconds per link with concurrency
-  async classifyMultipleLinksWithTimeout(links, detectionMode = 'regex', sensitivity = 5) {
-    // Base timeout: 30s + 5s per link (accounting for 5-concurrent processing)
-    // This gives plenty of room: 10 links = 30 + 50 = 80 seconds
-    const TIMEOUT_MS = Math.max(30000, 30000 + (links.length * 5000));
+  async classifyMultipleLinksWithTimeout(links, detectionMode = 'regex', sensitivity = SENSITIVITY_CONFIG.DEFAULT) {
+    // Calculate timeout based on config: base + per-link timeout
+    const TIMEOUT_MS = getClassificationTimeout(links.length);
 
     console.log(`BaitBreaker: Setting classification timeout to ${TIMEOUT_MS}ms for ${links.length} links`);
 
@@ -131,7 +131,7 @@ class BaitBreakerService {
 
   // Timeout wrapper for getSummary to prevent indefinite hangs
   async getSummaryWithTimeout(url) {
-    const TIMEOUT_MS = 30000; // 30 seconds for fetching and summarizing
+    const TIMEOUT_MS = TIMEOUT_CONFIG.SUMMARY;
 
     return Promise.race([
       this.getSummaryForUrl(url),
@@ -141,12 +141,12 @@ class BaitBreakerService {
     ]);
   }
 
-  async classifyMultipleLinks(links, detectionMode = 'regex', sensitivity = 5) {
+  async classifyMultipleLinks(links, detectionMode = 'regex', sensitivity = SENSITIVITY_CONFIG.DEFAULT) {
     console.log(`BaitBreaker: Classifying ${links.length} links (mode=${detectionMode}, sensitivity=${sensitivity})`);
 
     // Process links in parallel with concurrency limit to improve performance
     // while not overwhelming the AI service
-    const CONCURRENT_LIMIT = 5;
+    const CONCURRENT_LIMIT = PERFORMANCE_CONFIG.CONCURRENT_LIMIT;
 
     const classifyLink = async (link) => {
       try {
@@ -164,7 +164,7 @@ class BaitBreakerService {
             console.log('BaitBreaker: Classifying (AI):', link.text.substring(0, 50));
             const classification = await this.aiManager.classifyClickbait(link.text);
             await this.cacheManager.saveClassification(link.text, classification);
-            const threshold = Math.max(1, Math.min(10, Number(sensitivity) || 5)) / 10;
+            const threshold = Math.max(1, Math.min(10, Number(sensitivity) || SENSITIVITY_CONFIG.DEFAULT)) / 10;
             const isClickbait = (classification.confidence || 0) >= threshold && !!classification.isClickbait;
             const adjusted = { ...classification, isClickbait };
             console.log('BaitBreaker: AI result:', adjusted.isClickbait ? 'CLICKBAIT' : 'NOT CLICKBAIT',

@@ -1,5 +1,7 @@
 // src/background/article-fetcher.js
 // Service workers don't have access to DOMParser, so we use regex-based parsing
+import { PERFORMANCE_CONFIG } from '../../config/config.js';
+
 export class ArticleFetcher {
   async fetchAndParse(url) {
     try {
@@ -68,6 +70,6 @@ export class ArticleFetcher {
       .replace(/\s+/g, ' ')  // Multiple spaces to single space
       .replace(/\n{3,}/g, '\n\n')  // Multiple newlines to double
       .trim()
-      .slice(0, 10000);  // Limit length for AI processing
+      .slice(0, PERFORMANCE_CONFIG.ARTICLE_LENGTH_LIMIT);  // Limit length for AI processing
   }
 }

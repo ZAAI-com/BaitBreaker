@@ -1,8 +1,10 @@
 // src/background/cache-manager.js
+import { PERFORMANCE_CONFIG, getCacheDurationMs } from '../../config/config.js';
+
 export class CacheManager {
   constructor() {
-    this.CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
-    this.MAX_CACHE_SIZE = 1000;
+    this.CACHE_DURATION = getCacheDurationMs();
+    this.MAX_CACHE_SIZE = PERFORMANCE_CONFIG.CACHE.MAX_SIZE;
   }
 
   async initialize() {
@@ -97,7 +99,7 @@ export class CacheManager {
 
     // sort oldest first
     entries.sort((a, b) => (a.value.timestamp || 0) - (b.value.timestamp || 0));
-    const overflow = entries.length - this.MAX_CACHE_SIZE;
+    const overflow = entries.length - PERFORMANCE_CONFIG.CACHE.MAX_SIZE;
     const toRemove = entries.slice(0, overflow).map(e => e.key);
     if (toRemove.length) {
       await chrome.storage.local.remove(toRemove);
