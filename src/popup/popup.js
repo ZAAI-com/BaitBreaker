@@ -72,6 +72,24 @@ async function init() {
   document.getElementById('model-state').textContent = 'Ready';
 }
 
+/**
+ * Helper function to set all metrics display to a given value
+ * @param {string} value - The value to display for all metrics
+ */
+function setMetricsDisplay(value) {
+  document.getElementById('links-detected').textContent = value;
+  document.getElementById('links-processed').textContent = value;
+  document.getElementById('clickbait-detected').textContent = value;
+  document.getElementById('clickbait-summarized').textContent = value;
+}
+
+/**
+ * Reset metrics display to show dashes (e.g., when extension is disabled or unavailable)
+ */
+function resetMetricsDisplay() {
+  setMetricsDisplay('-');
+}
+
 async function updateMetrics() {
   try {
     // Check if extension is enabled
@@ -79,10 +97,7 @@ async function updateMetrics() {
 
     // If disabled, show dashes
     if (!settings.enabled) {
-      document.getElementById('links-detected').textContent = '-';
-      document.getElementById('links-processed').textContent = '-';
-      document.getElementById('clickbait-detected').textContent = '-';
-    document.getElementById('clickbait-summarized').textContent = '-';
+      resetMetricsDisplay();
       return;
     }
 
@@ -90,10 +105,7 @@ async function updateMetrics() {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
     if (!tab?.id) {
-      document.getElementById('links-detected').textContent = '0';
-      document.getElementById('links-processed').textContent = '0';
-      document.getElementById('clickbait-detected').textContent = '0';
-    document.getElementById('clickbait-summarized').textContent = '0';
+      setMetricsDisplay('0');
       return;
     }
 
@@ -114,18 +126,12 @@ async function updateMetrics() {
       document.getElementById('clickbait-summarized').textContent = String(response.clickbaitSummarized || 0);
     } else {
       // Content script not loaded or error
-      document.getElementById('links-detected').textContent = '0';
-      document.getElementById('links-processed').textContent = '0';
-      document.getElementById('clickbait-detected').textContent = '0';
-      document.getElementById('clickbait-summarized').textContent = '0';
+      setMetricsDisplay('0');
     }
   } catch (error) {
     // Content script not available on this page (chrome://, extensions page, etc.)
     console.log('Could not get metrics from current tab:', error.message);
-    document.getElementById('links-detected').textContent = '-';
-    document.getElementById('links-processed').textContent = '-';
-    document.getElementById('clickbait-detected').textContent = '-';
-    document.getElementById('clickbait-summarized').textContent = '-';
+    resetMetricsDisplay();
   }
 }
 
