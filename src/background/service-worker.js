@@ -10,6 +10,40 @@ class BaitBreakerService {
     this.articleFetcher = new ArticleFetcher();
     this.initialized = false;
     this.initError = null;
+    this.keepaliveInterval = null;
+  }
+
+  // Aggressive keepalive mechanism to prevent service worker from going idle
+  // Uses multiple methods and shorter intervals for maximum reliability
+  startKeepalive() {
+    if (this.keepaliveInterval) return; // Already active
+
+    console.log('BaitBreaker: Starting aggressive keepalive');
+
+    // Ping every 10 seconds (well within 30s service worker timeout)
+    let pingCount = 0;
+    this.keepaliveInterval = setInterval(() => {
+      pingCount++;
+      console.log(`BaitBreaker: Keepalive ping #${pingCount}`);
+
+      // Use multiple methods to keep worker alive
+      chrome.storage.local.get('_keepalive', () => {
+        // Method 1: Storage API access
+      });
+
+      // Method 2: Check if we can access runtime
+      if (chrome.runtime && chrome.runtime.id) {
+        // Still alive
+      }
+    }, 10000);
+  }
+
+  stopKeepalive() {
+    console.log('BaitBreaker: Stopping keepalive');
+    if (this.keepaliveInterval) {
+      clearInterval(this.keepaliveInterval);
+      this.keepaliveInterval = null;
+    }
   }
 
   async initialize() {
@@ -26,7 +60,7 @@ class BaitBreakerService {
     }
   }
 
-  async handleMessage(request, sender, sendResponse) {
+  async handleMessage(request) {
     console.log('BaitBreaker: Received message:', request.action);
 
     // Check if service is initialized
@@ -39,45 +73,99 @@ class BaitBreakerService {
     }
 
     try {
+      // Start keepalive for long-running operations
+      if (request.action === 'classifyLinks' || request.action === 'getSummary') {
+        this.startKeepalive();
+      }
+
+      let result;
       switch (request.action) {
         case 'classifyLinks':
-          return await this.classifyMultipleLinks(request.links);
+          result = await this.classifyMultipleLinksWithTimeout(request.links);
+          break;
         case 'getSummary':
-          return await this.getSummaryForUrl(request.url);
+          result = await this.getSummaryWithTimeout(request.url);
+          break;
         case 'clearCache':
-          return await this.cacheManager.clearAll();
+          result = await this.cacheManager.clearAll();
+          break;
         default:
           console.warn('BaitBreaker: Unknown action:', request.action);
-          return { error: true, message: 'Unknown action: ' + request.action };
+          result = { error: true, message: 'Unknown action: ' + request.action };
       }
+
+      // Keepalive will be stopped after sendResponse is called in the message listener
+      return result;
+
     } catch (error) {
+      // Keepalive will be stopped after sendResponse is called in the message listener
       console.error('BaitBreaker: Error handling message:', error);
       return { error: true, message: error.message || String(error) };
     }
   }
 
+  // Timeout wrapper for classifyLinks to prevent indefinite hangs
+  // Dynamic timeout based on number of links: ~8 seconds per link with concurrency
+  async classifyMultipleLinksWithTimeout(links) {
+    // Base timeout: 30s + 5s per link (accounting for 5-concurrent processing)
+    // This gives plenty of room: 10 links = 30 + 50 = 80 seconds
+    const TIMEOUT_MS = Math.max(30000, 30000 + (links.length * 5000));
+
+    console.log(`BaitBreaker: Setting classification timeout to ${TIMEOUT_MS}ms for ${links.length} links`);
+
+    return Promise.race([
+      this.classifyMultipleLinks(links),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`Classification timed out after ${TIMEOUT_MS}ms`)), TIMEOUT_MS)
+      )
+    ]);
+  }
+
+  // Timeout wrapper for getSummary to prevent indefinite hangs
+  async getSummaryWithTimeout(url) {
+    const TIMEOUT_MS = 30000; // 30 seconds for fetching and summarizing
+
+    return Promise.race([
+      this.getSummaryForUrl(url),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Summary generation timed out after 30s')), TIMEOUT_MS)
+      )
+    ]);
+  }
+
   async classifyMultipleLinks(links) {
     console.log(`BaitBreaker: Classifying ${links.length} links`);
-    const results = [];
 
-    for (const link of links) {
+    // Process links in parallel with concurrency limit to improve performance
+    // while not overwhelming the AI service
+    const CONCURRENT_LIMIT = 5;
+
+    const classifyLink = async (link) => {
       try {
         const cached = await this.cacheManager.getClassification(link.text);
         if (cached) {
           console.log('BaitBreaker: Using cached classification for:', link.text.substring(0, 50));
-          results.push(cached);
+          return cached;
         } else {
           console.log('BaitBreaker: Classifying:', link.text.substring(0, 50));
           const classification = await this.aiManager.classifyClickbait(link.text);
           await this.cacheManager.saveClassification(link.text, classification);
           console.log('BaitBreaker: Result:', classification.isClickbait ? 'CLICKBAIT' : 'NOT CLICKBAIT',
                      `(${Math.round(classification.confidence * 100)}%)`);
-          results.push(classification);
+          return classification;
         }
       } catch (error) {
         console.error('BaitBreaker: Error classifying link:', error);
-        results.push({ isClickbait: false, error: true, errorMessage: error.message });
+        return { isClickbait: false, error: true, errorMessage: error.message };
       }
+    };
+
+    // Process in batches to control concurrency
+    const results = [];
+    for (let i = 0; i < links.length; i += CONCURRENT_LIMIT) {
+      const batch = links.slice(i, i + CONCURRENT_LIMIT);
+      const batchResults = await Promise.all(batch.map(classifyLink));
+      results.push(...batchResults);
     }
 
     console.log(`BaitBreaker: Classification complete. Found ${results.filter(r => r.isClickbait).length} clickbait links`);
@@ -103,18 +191,61 @@ class BaitBreakerService {
 const service = new BaitBreakerService();
 service.initialize();
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  // Handle async message with proper error handling
-  (async () => {
-    try {
-      const result = await service.handleMessage(request, sender, sendResponse);
-      sendResponse(result);
-    } catch (err) {
-      console.error('BaitBreaker: Uncaught error in message handler:', err);
-      sendResponse({ error: true, message: err.message || String(err) });
-    }
-  })();
+// Service worker lifecycle logging
+self.addEventListener('install', (event) => {
+  console.log('BaitBreaker: Service worker INSTALLED');
+});
 
-  // Return true to indicate we'll send response asynchronously
+self.addEventListener('activate', (event) => {
+  console.log('BaitBreaker: Service worker ACTIVATED');
+});
+
+// Log when service worker starts (this runs on every wake-up)
+console.log('BaitBreaker: Service worker script executed at', new Date().toISOString());
+
+// Ultra-robust message listener with extensive logging and error handling
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log('BaitBreaker: Message listener triggered for action:', request?.action);
+
+  // Wrapper function to ensure sendResponse is ALWAYS called
+  const handleAsync = async () => {
+    try {
+      console.log('BaitBreaker: Starting handleMessage for:', request?.action);
+      const result = await service.handleMessage(request);
+      console.log('BaitBreaker: handleMessage completed successfully for:', request?.action);
+
+      // Ensure we always call sendResponse
+      if (sendResponse) {
+        sendResponse(result);
+        console.log('BaitBreaker: sendResponse called with result');
+      } else {
+        console.error('BaitBreaker: sendResponse is null/undefined!');
+      }
+
+      // Stop keepalive after response is sent
+      service.stopKeepalive();
+    } catch (err) {
+      console.error('BaitBreaker: Error in handleAsync:', err);
+      console.error('BaitBreaker: Error stack:', err.stack);
+
+      // Always send error response
+      const errorResponse = { error: true, message: err.message || String(err) };
+      if (sendResponse) {
+        sendResponse(errorResponse);
+        console.log('BaitBreaker: sendResponse called with error');
+      } else {
+        console.error('BaitBreaker: Cannot send error - sendResponse is null!');
+      }
+
+      // Stop keepalive after error response is sent
+      service.stopKeepalive();
+    }
+  };
+
+  // Execute async handler
+  handleAsync();
+
+  // CRITICAL: Return true to keep message channel open
+  console.log('BaitBreaker: Returning true to keep channel open');
   return true;
 });

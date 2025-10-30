@@ -44,19 +44,24 @@ module.exports = {
                 );
               }
             }
+            // Update popup path
+            if (manifest.action && manifest.action.default_popup) {
+              manifest.action.default_popup = 'popup.html';
+            }
             return JSON.stringify(manifest, null, 2);
           }
         },
         { from: 'icons', to: 'icons' },
         { from: 'src/styles', to: 'styles' },
         {
-          from: 'popup.html',
+          from: 'src/popup/popup.html',
           transform(content) {
             return content.toString()
+              .replace('type="module" src="popup.js"', 'src="popup.bundle.js"')
               .replace('src="popup.js"', 'src="popup.bundle.js"');
           }
         },
-        { from: 'popup.css' }
+        { from: 'src/popup/popup.css' }
       ]
     })
   ]

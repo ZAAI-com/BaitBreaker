@@ -145,16 +145,19 @@ class BBContentManager {
           this.summaryCache.set(url, summary);
         }
         this.showSummary(indicator, summary, {
-          domain: new URL(url).hostname.replace(/^www\./, ''),
-          confidence: Math.round((Number(indicator.dataset.confidence || 0) * 100))
+          domain: new URL(url).hostname.replace(/^www\./, '')
         });
       } catch (e) {
         console.error('BaitBreaker: Failed to get summary:', e);
         this.showSummary(indicator, 'Could not summarize this article.', {
-          domain: 'unknown',
-          confidence: 0
+          domain: 'unknown'
         });
       }
+    });
+
+    // Hide tooltip when mouse leaves the [B] badge
+    indicator.addEventListener('mouseleave', () => {
+      this.hideTooltip();
     });
   }
 
@@ -203,19 +206,17 @@ class BBContentManager {
     const t = document.createElement('div');
     t.className = 'bb-tooltip';
     t.innerHTML = `
-      <div class="bb-header"><h4>Quick Answer</h4><span class="bb-close">×</span></div>
+      <div class="bb-header"><h4>Quick Answer</h4></div>
       <div class="bb-content">
         <p class="bb-summary"></p>
         <div class="bb-metadata">
           <span class="bb-source">${meta.domain}</span>
-          <span class="bb-confidence">Confidence: ${meta.confidence}%</span>
         </div>
       </div>`;
     t.querySelector('.bb-summary').textContent = String(summary || '').slice(0, 1000);
     this.positionTooltip(t, anchor);
     document.body.appendChild(t);
     this.tooltip = t;
-    t.querySelector('.bb-close').addEventListener('click', () => this.hideTooltip());
   }
 
   hideTooltip() { this.tooltip?.remove(); this.tooltip = null; }
