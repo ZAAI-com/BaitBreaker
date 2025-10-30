@@ -37,6 +37,3 @@ export function regexDetect(text) {
   const confidence = isClickbait ? Math.min(0.3 + matches.length * 0.15, 0.95) : 0;
   return { isClickbait, confidence };
 }
-
-// Alias used by background/service-worker.js for simple detection mode
-export function regexDetect(text) { return heuristicDetect(text); }

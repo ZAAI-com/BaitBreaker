@@ -10,18 +10,18 @@ async function init() {
   const sensitivity = document.getElementById('sensitivity');
   const sensitivityPercent = document.getElementById('sensitivity-percent');
   const clearCacheBtn = document.getElementById('clear-cache');
-  const detectionMode = document.getElementById('detection-mode');
   let metricsTimer = null;
 
   // Set initial values
   enabled.checked = !!settings.enabled;
   sensitivity.value = settings.sensitivity ?? 5;
-  if (detectionMode) detectionMode.value = settings.detectionMode || 'simple-regex';
 
-  // Initialize detection mode (default: chrome-ai)
-  const detectionMode = settings.detectionMode || 'simple-regex';
+  // Initialize detection mode (default: simple-regex)
+  const currentDetectionMode = settings.detectionMode || 'simple-regex';
+  const modeSimple = document.getElementById('mode-simple');
+  const modeAi = document.getElementById('mode-ai');
   if (modeSimple && modeAi) {
-    if (detectionMode === 'simple-regex') {
+    if (currentDetectionMode === 'simple-regex') {
       modeSimple.checked = true;
     } else {
       modeAi.checked = true;
@@ -29,6 +29,7 @@ async function init() {
   }
 
   // Toggle sensitivity visibility based on mode (hide for simple-regex)
+  const sensitivitySliderLabel = document.querySelector('.slider');
   function updateSensitivityVisibility(mode) {
     if (!sensitivitySliderLabel) return;
     if (mode === 'simple-regex') {
@@ -37,7 +38,7 @@ async function init() {
       sensitivitySliderLabel.classList.remove('hidden');
     }
   }
-  updateSensitivityVisibility(detectionMode);
+  updateSensitivityVisibility(currentDetectionMode);
 
   // Add event listeners
   enabled.addEventListener('change', async () => {
@@ -51,13 +52,6 @@ async function init() {
       sensitivityPercent.textContent = String((Number(sensitivity.value) || 5) * 10);
     }
   });
-
-  if (detectionMode) {
-    detectionMode.addEventListener('change', async () => {
-      await persist({ ...settings, detectionMode: detectionMode.value });
-      updateMetrics();
-    });
-  }
 
   clearCacheBtn.addEventListener('click', async () => {
     await chrome.runtime.sendMessage({ action: 'clearCache' });
@@ -161,17 +155,13 @@ async function updateMetrics() {
       document.getElementById('links-detected').textContent = String(detectedCount);
       document.getElementById('links-processed').textContent = String(response.linksProcessed || 0);
       document.getElementById('clickbait-detected').textContent = String(response.clickbaitDetected || 0);
-      if (document.getElementById('links-detected')) {
-        document.getElementById('links-detected').textContent = String(response.linksDetected || 0);
-      }
+      document.getElementById('clickbait-summarized').textContent = String(response.clickbaitSummarized || 0);
     } else {
       // Content script not loaded or error
       document.getElementById('links-detected').textContent = '0';
       document.getElementById('links-processed').textContent = '0';
       document.getElementById('clickbait-detected').textContent = '0';
-      if (document.getElementById('links-detected')) {
-        document.getElementById('links-detected').textContent = '0';
-      }
+      document.getElementById('clickbait-summarized').textContent = '0';
     }
   } catch (error) {
     // Content script not available on this page (chrome://, extensions page, etc.)
@@ -179,9 +169,7 @@ async function updateMetrics() {
     document.getElementById('links-detected').textContent = '-';
     document.getElementById('links-processed').textContent = '-';
     document.getElementById('clickbait-detected').textContent = '-';
-    if (document.getElementById('links-detected')) {
-      document.getElementById('links-detected').textContent = '-';
-    }
+    document.getElementById('clickbait-summarized').textContent = '-';
   }
 }
 

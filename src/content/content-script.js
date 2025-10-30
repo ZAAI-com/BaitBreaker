@@ -484,6 +484,7 @@ class BBContentManager {
           this.processedLinks.clear();
           this.summaryLoadingStatus.clear();
           this.clickbaitCount = 0;
+          this.summarizedClickbait.clear();
         }
         this.scanPageForLinks();
       }
@@ -500,12 +501,14 @@ class BBContentManager {
         sendResponse({
           linksProcessed: this.processedLinks.size,
           clickbaitDetected: this.clickbaitCount,
-          linksDetected
+          linksDetected,
+          clickbaitSummarized: this.summarizedClickbait.size
         });
       } catch (e) {
         sendResponse({
           linksProcessed: this.processedLinks.size,
-          clickbaitDetected: this.clickbaitCount
+          clickbaitDetected: this.clickbaitCount,
+          clickbaitSummarized: this.summarizedClickbait.size
         });
       }
       return true; // Indicate async response
@@ -515,6 +518,7 @@ class BBContentManager {
       this.processedLinks.clear();
       this.summaryLoadingStatus.clear();
       this.clickbaitCount = 0;
+      this.summarizedClickbait.clear();
       this.scanPageForLinks();
       return false;
     }
