@@ -1,4 +1,4 @@
-# BaitBreaker (formerly AntiClickBait) — Complete Engineering Plan
+# BaitBreaker — Complete Engineering Plan
 > **Goal**: For any clickbait‑style link on a web page, show a hover tooltip that *directly answers the clickbait question* by summarizing the target article. All AI runs **on‑device** via Chrome’s built‑in AI (Gemini Nano).
 
 ## 1) Architecture (MV3)
@@ -64,5 +64,3 @@
 - Options page: sensitivity slider, domain allow/deny list.
 - Integrate Rewriter API for tone control of answers (subject to origin trial).
 - Streamed summarization for ultra‑fast perceived latency.
-
-**Renaming note:** The original “AntiClickBait (ACB)” is now **BaitBreaker** throughout the codebase and docs.

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="popup.css">
+  <title>BaitBreaker</title>
+</head>
+<body>
+  <div class="bb-popup">
+    <header>
+      <h1>BaitBreaker</h1>
+      <label class="toggle-switch">
+        <input type="checkbox" id="enabled">
+        <span class="toggle-slider"></span>
+      </label>
+    </header>
+
+    <main>
+      <div class="stats">
+        <div class="stat-item">
+          <span class="stat-value" id="links-detected">0</span>
+          <span class="stat-label">Links Detected</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" id="links-processed">0</span>
+          <span class="stat-label">Links Analyzed</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" id="clickbait-detected">0</span>
+          <span class="stat-label">Clickbait Detected</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" id="clickbait-summarized">0</span>
+          <span class="stat-label">Clickbait Summarized</span>
+        </div>
+      </div>
+      
+
+      <div class="advanced-section">
+        <div class="advanced-header">Advanced</div>
+        <div class="advanced-content">
+          <div class="mode-info">
+            <div class="mode-info-item">
+              <div class="mode-info-label">Detection Mode</div>
+              <div class="mode-info-value" id="detection-mode-display">RegEx (<span id="detection-cache-count">-</span> results cached)</div>
+            </div>
+            <div class="mode-info-item">
+              <div class="mode-info-label">Summarization Mode</div>
+              <div class="mode-info-value" id="summarization-mode-display">Chrome AI (<span id="summarization-cache-count">-</span> results cached)</div>
+            </div>
+          </div>
+
+          <label class="slider hidden">
+            <span>Clickbait must be at least at <span id="sensitivity-percent">50</span> % to show the indicator.</span>
+            <input type="range" id="sensitivity" min="1" max="10" value="5">
+          </label>
+
+          <button id="clear-cache" class="advanced-button">Clear Cache</button>
+
+          <div class="model-status">
+            Model: <span id="model-state">Loading...</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
