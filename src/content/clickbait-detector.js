@@ -15,3 +15,6 @@ export function heuristicDetect(text) {
   if (CLICKBAIT_PATTERNS.listicles.some(r => r.test(t))) reasons.push('listicle');
   return { isClickbait: reasons.length > 0, confidence: Math.min(0.2 + reasons.length * 0.2, 0.95), reason: reasons.join(', ') };
 }
+
+// Alias used by background/service-worker.js for simple detection mode
+export function regexDetect(text) { return heuristicDetect(text); }

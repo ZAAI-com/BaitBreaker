@@ -3,6 +3,7 @@ export class SettingsManager {
   static DEFAULTS = {
     enabled: true,
     sensitivity: 5,
+    detectionMode: 'simple-regex',
     showConfidence: false,
     cacheEnabled: true,
     domains: { whitelist: [], blacklist: [] }
