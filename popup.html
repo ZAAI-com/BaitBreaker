@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>BaitBreaker</title><link rel="stylesheet" href="popup.css"/></head>
+<body>
+  <div class="wrap">
+    <header><h1>BaitBreaker</h1><span id="modelState" class="badge">Checking…</span></header>
+    <main>
+      <div class="row"><label class="toggle"><input type="checkbox" id="enabled" checked/><span>Enable BaitBreaker</span></label></div>
+      <div class="row"><button id="preload">Preload on‑device AI</button><button id="clear">Clear cache</button></div>
+      <p class="muted">Tip: On first use, click a [B] badge once to allow the AI model download (one‑time).</p>
+      <div id="log"></div>
+    </main>
+    <footer><a href="https://developer.chrome.com/docs/ai/prompt-api" target="_blank" rel="noopener">Docs</a></footer>
+  </div>
+  <script src="popup.js"></script>
+</body></html>

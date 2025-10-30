@@ -1,0 +1,52 @@
+{
+  "manifest_version": 3,
+  "name": "BaitBreaker",
+  "version": "1.0.0",
+  "description": "Get instant answers to clickbait titles without clicking through.",
+  "permissions": [
+    "storage",
+    "scripting",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "src/content/content-script.js"
+      ],
+      "css": [
+        "src/styles/tooltip.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "src/content/inpage.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "action": {
+    "default_title": "BaitBreaker",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  }
+}
