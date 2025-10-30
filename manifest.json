@@ -2,11 +2,11 @@
   "manifest_version": 3,
   "name": "BaitBreaker",
   "version": "1.0.0",
-  "description": "Get instant answers to clickbait titles without clicking through.",
+  "description": "Get instant answers to clickbait titles without clicking",
   "permissions": [
+    "activeTab",
     "storage",
-    "scripting",
-    "activeTab"
+    "scripting"
   ],
   "host_permissions": [
     "http://*/*",
@@ -30,18 +30,7 @@
       "run_at": "document_idle"
     }
   ],
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "src/content/inpage.js"
-      ],
-      "matches": [
-        "<all_urls>"
-      ]
-    }
-  ],
   "action": {
-    "default_title": "BaitBreaker",
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon-16.png",
