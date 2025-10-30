@@ -12,12 +12,83 @@ class BBContentManager {
   constructor() {
     this.processedLinks = new Set();
     this.summaryCache = new Map();
+    this.summaryLoadingStatus = new Map(); // url -> 'loading' | 'ready' | 'error'
     this.observer = null;
     this.tooltip = null;
     this.isScanning = false;
     this.scanTimeout = null;
     this.clickbaitCount = 0;
     this.settings = null;
+    this.contextInvalidated = false;
+  }
+
+  /**
+   * Check if the extension context is still valid.
+   * Context becomes invalid when extension is reloaded, updated, or disabled.
+   * @returns {boolean} True if context is valid, false otherwise
+   */
+  isExtensionContextValid() {
+    try {
+      // chrome.runtime.id becomes undefined when context is invalidated
+      return !!(chrome?.runtime?.id);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
+   * Safely send a message to the background service worker with context validation.
+   * @param {Object} message - The message to send
+   * @returns {Promise<any>} Response from service worker
+   * @throws {Error} Throws CONTEXT_INVALIDATED error if extension context is invalid
+   */
+  async safeRuntimeMessage(message) {
+    if (!this.isExtensionContextValid()) {
+      this.contextInvalidated = true;
+      throw new Error('CONTEXT_INVALIDATED');
+    }
+
+    try {
+      return await chrome.runtime.sendMessage(message);
+    } catch (error) {
+      // Check if error is due to context invalidation
+      if (error.message && error.message.includes('Extension context invalidated')) {
+        this.contextInvalidated = true;
+        throw new Error('CONTEXT_INVALIDATED');
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Handle context invalidation by showing helpful message to user.
+   * @param {HTMLElement} anchor - Element to anchor the message to
+   * @param {string} linkText - Text of the link being processed
+   */
+  handleContextInvalidation(anchor, linkText) {
+    console.warn('BaitBreaker: Extension context invalidated. User needs to refresh page.');
+
+    this.showSummary(anchor,
+      '⚠️ Extension was reloaded or updated. Please refresh this page to continue using BaitBreaker.',
+      {
+        linkText: linkText || 'Action Required',
+        domain: 'BaitBreaker Extension'
+      }
+    );
+
+    // Mark all existing badges as inactive
+    this.markBadgesAsInactive();
+  }
+
+  /**
+   * Visually mark all existing badges as inactive when context is invalidated.
+   */
+  markBadgesAsInactive() {
+    document.querySelectorAll('.bb-indicator').forEach(badge => {
+      badge.style.opacity = '0.5';
+      badge.style.cursor = 'not-allowed';
+      badge.title = 'Extension needs refresh - please reload this page';
+    });
   }
 
   async initialize() {
@@ -85,7 +156,7 @@ class BBContentManager {
     }));
 
     try {
-      const results = await chrome.runtime.sendMessage({
+      const results = await this.safeRuntimeMessage({
         action: 'classifyLinks',
         links: linkData.map(l => ({ text: l.text, href: l.href }))
       });
@@ -110,6 +181,13 @@ class BBContentManager {
         this.processedLinks.add(linkData[index].element);
       });
     } catch (error) {
+      // Check if error is due to context invalidation
+      if (error.message === 'CONTEXT_INVALIDATED') {
+        console.warn('BaitBreaker: Cannot classify links - extension context invalidated');
+        // Mark existing badges as inactive
+        this.markBadgesAsInactive();
+        return;
+      }
       console.error('BaitBreaker: Failed to classify links:', error);
     }
   }
@@ -121,35 +199,105 @@ class BBContentManager {
     indicator.title = `Clickbait (p≈${Math.round((classificationResult.confidence || 0) * 100)}%)`;
     indicator.dataset.confidence = classificationResult.confidence;
     indicator.dataset.href = linkElement.href;
+    indicator.dataset.linkText = (linkElement.textContent || '').trim();
 
     linkElement.insertAdjacentElement('afterend', indicator);
     this.attachHoverHandler(indicator, linkElement);
+
+    // Start background summarization immediately
+    this.prefetchSummary(linkElement.href, indicator);
+  }
+
+  async prefetchSummary(url, indicator) {
+    // Check if already cached or loading
+    if (this.summaryCache.has(url) || this.summaryLoadingStatus.get(url) === 'loading') {
+      return;
+    }
+
+    // Mark as loading
+    this.summaryLoadingStatus.set(url, 'loading');
+
+    try {
+      // Fetch summary in background
+      const response = await this.safeRuntimeMessage({ action: 'getSummary', url });
+
+      if (response?.error) {
+        this.summaryLoadingStatus.set(url, 'error');
+        this.summaryCache.set(url, 'Service unavailable: ' + response.message);
+      } else {
+        this.summaryLoadingStatus.set(url, 'ready');
+        this.summaryCache.set(url, response);
+
+        // Update indicator visual state to darker purple
+        indicator.classList.add('bb-summary-ready');
+      }
+    } catch (e) {
+      // Check if error is due to context invalidation
+      if (e.message === 'CONTEXT_INVALIDATED') {
+        console.warn('BaitBreaker: Cannot prefetch summary - extension context invalidated');
+        this.summaryLoadingStatus.set(url, 'error');
+        this.summaryCache.set(url, '⚠️ Extension was reloaded. Please refresh this page.');
+        return;
+      }
+      console.error('BaitBreaker: Background summary failed:', e);
+      this.summaryLoadingStatus.set(url, 'error');
+    }
   }
 
   attachHoverHandler(indicator, link) {
     indicator.addEventListener('mouseenter', async () => {
-      this.showLoading(indicator);
+      const linkText = indicator.dataset.linkText || 'Article';
       const url = indicator.dataset.href;
-      try {
-        let summary = this.summaryCache.get(url);
-        if (!summary) {
-          const response = await chrome.runtime.sendMessage({ action: 'getSummary', url });
 
-          // Check if we got an error response
-          if (response?.error) {
-            summary = 'Service unavailable: ' + response.message;
+      try {
+        // Check if summary is already in cache (from background prefetch)
+        let summary = this.summaryCache.get(url);
+
+        if (summary) {
+          // Summary is ready, show it immediately without loading state
+          this.showSummary(indicator, summary, {
+            linkText: linkText,
+            domain: new URL(url).hostname.replace(/^www\./, '')
+          });
+        } else {
+          // Summary not ready yet, show loading state
+          this.showLoading(indicator, linkText);
+
+          // Wait for the background fetch to complete or fetch now if not started
+          if (!this.summaryLoadingStatus.has(url)) {
+            const response = await this.safeRuntimeMessage({ action: 'getSummary', url });
+
+            // Check if we got an error response
+            if (response?.error) {
+              summary = 'Service unavailable: ' + response.message;
+            } else {
+              summary = response;
+            }
+
+            this.summaryCache.set(url, summary);
           } else {
-            summary = response;
+            // Wait for prefetch to complete
+            while (!this.summaryCache.has(url)) {
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            summary = this.summaryCache.get(url);
           }
 
-          this.summaryCache.set(url, summary);
+          this.showSummary(indicator, summary, {
+            linkText: linkText,
+            domain: new URL(url).hostname.replace(/^www\./, '')
+          });
         }
-        this.showSummary(indicator, summary, {
-          domain: new URL(url).hostname.replace(/^www\./, '')
-        });
       } catch (e) {
+        // Check if error is due to context invalidation
+        if (e.message === 'CONTEXT_INVALIDATED') {
+          console.error('BaitBreaker: Failed to get summary:', e);
+          this.handleContextInvalidation(indicator, linkText);
+          return;
+        }
         console.error('BaitBreaker: Failed to get summary:', e);
         this.showSummary(indicator, 'Could not summarize this article.', {
+          linkText: linkText,
           domain: 'unknown'
         });
       }
@@ -171,6 +319,7 @@ class BBContentManager {
       if (this.settings.enabled === false) {
         document.querySelectorAll('.bb-indicator').forEach(badge => badge.remove());
         this.processedLinks.clear();
+        this.summaryLoadingStatus.clear();
         this.clickbaitCount = 0;
       }
       // If extension was re-enabled, rescan
@@ -191,11 +340,16 @@ class BBContentManager {
   }
 
   // Lightweight tooltip functions
-  showLoading(anchor) {
+  showLoading(anchor, linkText) {
     this.hideTooltip();
     const t = document.createElement('div');
     t.className = 'bb-tooltip bb-loading';
-    t.innerHTML = `<div class="bb-spinner"></div><p>Analyzing article...</p>`;
+    t.innerHTML = `
+      <div class="bb-header"><h4 class="bb-link-title"></h4></div>
+      <div class="bb-content">
+        <div class="bb-spinner"></div><p>Analyzing article...</p>
+      </div>`;
+    t.querySelector('.bb-link-title').textContent = linkText || 'Article';
     this.positionTooltip(t, anchor);
     document.body.appendChild(t);
     this.tooltip = t;
@@ -206,13 +360,14 @@ class BBContentManager {
     const t = document.createElement('div');
     t.className = 'bb-tooltip';
     t.innerHTML = `
-      <div class="bb-header"><h4>Quick Answer</h4></div>
+      <div class="bb-header"><h4 class="bb-link-title"></h4></div>
       <div class="bb-content">
         <p class="bb-summary"></p>
         <div class="bb-metadata">
           <span class="bb-source">${meta.domain}</span>
         </div>
       </div>`;
+    t.querySelector('.bb-link-title').textContent = meta.linkText || 'Article';
     t.querySelector('.bb-summary').textContent = String(summary || '').slice(0, 1000);
     this.positionTooltip(t, anchor);
     document.body.appendChild(t);

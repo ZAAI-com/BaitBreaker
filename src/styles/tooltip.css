@@ -7,10 +7,15 @@
   font-weight: 700;
   line-height: 16px;
   border-radius: 3px;
-  background: rgba(255, 0, 0, 0.12);
-  color: #c21807;
+  background: rgba(168, 85, 247, 0.15);
+  color: #7c3aed;
   cursor: help;
   user-select: none;
+}
+
+.bb-indicator.bb-summary-ready {
+  background: rgba(168, 85, 247, 0.25);
+  color: #6d28d9;
 }
 
 .bb-tooltip {
@@ -30,6 +35,16 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 8px;
+}
+
+.bb-tooltip .bb-link-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .bb-tooltip .bb-close {

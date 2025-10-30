@@ -10,7 +10,10 @@
   <div class="bb-popup">
     <header>
       <h1>BaitBreaker</h1>
-      <div class="status-indicator" id="status"></div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="enabled">
+        <span class="toggle-slider"></span>
+      </label>
     </header>
 
     <main>
@@ -25,28 +28,22 @@
         </div>
       </div>
 
-      <div class="settings">
-        <label class="toggle">
-          <input type="checkbox" id="enabled">
-          <span>Enable BB</span>
-        </label>
+      <div class="advanced-section">
+        <div class="advanced-header">Advanced</div>
+        <div class="advanced-content">
+          <label class="slider">
+            <span>Sensitivity</span>
+            <input type="range" id="sensitivity" min="1" max="10" value="5">
+          </label>
 
-        <label class="slider">
-          <span>Sensitivity</span>
-          <input type="range" id="sensitivity" min="1" max="10" value="5">
-        </label>
-      </div>
+          <button id="clear-cache" class="advanced-button">Clear Cache</button>
 
-      <div class="actions">
-        <button id="clear-cache">Clear Cache</button>
+          <div class="model-status">
+            Model: <span id="model-state">Loading...</span>
+          </div>
+        </div>
       </div>
     </main>
-
-    <footer>
-      <p class="model-status" id="model-status">
-        Model: <span id="model-state">Loading...</span>
-      </p>
-    </footer>
   </div>
   <script type="module" src="popup.js"></script>
 </body>
