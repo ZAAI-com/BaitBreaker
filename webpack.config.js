@@ -57,8 +57,8 @@ module.exports = {
           from: 'src/popup/popup.html',
           transform(content) {
             return content.toString()
-              .replace('type="module" src="popup.js"', 'src="popup.bundle.js"')
-              .replace('src="popup.js"', 'src="popup.bundle.js"');
+              .replace(/type=["']module["']\s+src=["']popup\.js["']/g, 'src="popup.bundle.js"')
+              .replace(/src=["']popup\.js["']/g, 'src="popup.bundle.js"');
           }
         },
         { from: 'src/popup/popup.css' }
