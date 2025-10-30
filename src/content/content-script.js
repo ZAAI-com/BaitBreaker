@@ -418,11 +418,18 @@ class BBContentManager {
 
             this.summaryCache.set(url, summary);
           } else {
-            // Wait for prefetch to complete
-            while (!this.summaryCache.has(url)) {
+            // Wait for prefetch to complete, but avoid infinite loop
+            const MAX_ATTEMPTS = 30; // 30 * 100ms = 3 seconds
+            let attempts = 0;
+            while (!this.summaryCache.has(url) && attempts++ < MAX_ATTEMPTS) {
               await new Promise(resolve => setTimeout(resolve, 100));
             }
-            summary = this.summaryCache.get(url);
+            if (!this.summaryCache.has(url)) {
+              // Timed out waiting for summary
+              summary = 'Could not summarize this article (timed out).';
+            } else {
+              summary = this.summaryCache.get(url);
+            }
           }
 
           this.showSummary(indicator, summary, {
