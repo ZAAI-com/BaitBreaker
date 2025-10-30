@@ -352,8 +352,6 @@ describe('Message Channel Timeout and Service Worker Failures', () => {
           return !!(chrome?.runtime?.id);
         },
         async safeRuntimeMessage(message, options = {}) {
-          const { timeout = 45000, maxRetries = 2, retryDelay = 1000 } = options;
-
           if (!this.isExtensionContextValid()) {
             this.contextInvalidated = true;
             throw new Error('CONTEXT_INVALIDATED');
