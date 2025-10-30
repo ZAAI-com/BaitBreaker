@@ -3,7 +3,6 @@ import { SettingsManager } from '../lib/settings-manager.js';
 import { UI_CONFIG, SENSITIVITY_CONFIG } from '../../config/config.js';
 
 const settingsManager = new SettingsManager();
-let metricsInterval = null;
 
 async function init() {
   const settings = await settingsManager.load();

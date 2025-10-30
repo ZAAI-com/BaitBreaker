@@ -7,7 +7,6 @@
 
 describe('Extension Context Invalidation', () => {
   let mockChrome;
-  let contentManager;
   let mockIndicator;
   let mockLink;
 
