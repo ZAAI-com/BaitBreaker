@@ -221,49 +221,45 @@ self.addEventListener('activate', (event) => {
 // Log when service worker starts (this runs on every wake-up)
 console.log('BaitBreaker: Service worker script executed at', new Date().toISOString());
 
-// Ultra-robust message listener with extensive logging and error handling
+// Ultra-robust message listener with Promise-based async handling (MV3 pattern)
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('BaitBreaker: Message listener triggered for action:', request?.action);
 
-  // Wrapper function to ensure sendResponse is ALWAYS called
-  const handleAsync = async () => {
+  // Use Promise-based pattern to avoid race conditions with sendResponse
+  // This is the recommended MV3 approach that ensures proper async handling
+  const handleMessagePromise = (async () => {
     try {
       console.log('BaitBreaker: Starting handleMessage for:', request?.action);
       const result = await service.handleMessage(request);
       console.log('BaitBreaker: handleMessage completed successfully for:', request?.action);
 
-      // Ensure we always call sendResponse
-      if (sendResponse) {
-        sendResponse(result);
-        console.log('BaitBreaker: sendResponse called with result');
-      } else {
-        console.error('BaitBreaker: sendResponse is null/undefined!');
-      }
-
-      // Stop keepalive after response is sent
+      // Stop keepalive after response is ready
       service.stopKeepalive();
+      
+      return result;
     } catch (err) {
-      console.error('BaitBreaker: Error in handleAsync:', err);
+      console.error('BaitBreaker: Error in message handler:', err);
       console.error('BaitBreaker: Error stack:', err.stack);
 
-      // Always send error response
-      const errorResponse = { error: true, message: err.message || String(err) };
-      if (sendResponse) {
-        sendResponse(errorResponse);
-        console.log('BaitBreaker: sendResponse called with error');
-      } else {
-        console.error('BaitBreaker: Cannot send error - sendResponse is null!');
-      }
-
-      // Stop keepalive after error response is sent
+      // Stop keepalive after error
       service.stopKeepalive();
+      
+      // Return error response
+      return { error: true, message: err.message || String(err) };
     }
-  };
+  })();
 
-  // Execute async handler
-  handleAsync();
+  // Send response with the promise result
+  handleMessagePromise
+    .then(response => {
+      console.log('BaitBreaker: Sending response for:', request?.action);
+      sendResponse(response);
+    })
+    .catch(err => {
+      console.error('BaitBreaker: Unexpected error sending response:', err);
+      sendResponse({ error: true, message: 'Unexpected error: ' + err.message });
+    });
 
-  // CRITICAL: Return true to keep message channel open
-  console.log('BaitBreaker: Returning true to keep channel open');
+  // Return true to indicate async response
   return true;
 });
