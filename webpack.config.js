@@ -33,6 +33,10 @@ module.exports = {
             // Update service worker path
             if (manifest.background && manifest.background.service_worker) {
               manifest.background.service_worker = 'background.bundle.js';
+              // Remove "type": "module" since webpack bundles as regular JS
+              if (manifest.background.type) {
+                delete manifest.background.type;
+              }
             }
             // Update content script path
             if (manifest.content_scripts && manifest.content_scripts[0]) {
