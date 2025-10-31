@@ -9,6 +9,11 @@ import {
   PERFORMANCE_CONFIG,
   SENSITIVITY_CONFIG
 } from '../../config/config.js';
+import {
+  CLASSIFICATION_PROMPT_TEMPLATE,
+  SUMMARIZATION_CONTEXT_TEMPLATE,
+  CLASSIFICATION_SCHEMA
+} from '../../config/prompts.js';
 
 /**
  * Main Content Manager Class
@@ -47,6 +52,43 @@ class BaitBreakerContentManager {
   }
 
   /**
+   * Inject inpage.js into page context with prompts embedded
+   */
+  async injectInPageScript() {
+    try {
+      // Check if already injected
+      if (window.__BB_INPAGE_INJECTED__) {
+        return;
+      }
+
+      // Prepare prompts object to inject
+      const prompts = {
+        CLASSIFICATION_PROMPT_TEMPLATE,
+        SUMMARIZATION_CONTEXT_TEMPLATE,
+        CLASSIFICATION_SCHEMA
+      };
+
+      // Inject prompts into page context first
+      const script = document.createElement('script');
+      script.textContent = `
+        window.__BB_PROMPTS__ = ${JSON.stringify(prompts)};
+        window.__BB_INPAGE_INJECTED__ = true;
+      `;
+      (document.head || document.documentElement).appendChild(script);
+      script.remove();
+
+      // Inject inpage.js
+      const inpageScript = document.createElement('script');
+      inpageScript.src = chrome.runtime.getURL('src/content/inpage.js');
+      (document.head || document.documentElement).appendChild(inpageScript);
+      
+      console.log('BaitBreaker: Injected inpage.js with prompts');
+    } catch (error) {
+      console.error('BaitBreaker: Failed to inject inpage.js:', error);
+    }
+  }
+
+  /**
    * Initialize the content script
    */
   async initialize() {
@@ -57,6 +99,9 @@ class BaitBreakerContentManager {
       if (!this.isExtensionContextValid()) {
         throw new Error('Chrome extension APIs not available');
       }
+
+      // Inject inpage.js with prompts
+      await this.injectInPageScript();
 
       // Load settings from storage
       await this.loadSettings();

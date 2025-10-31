@@ -1,5 +1,21 @@
 // Page-context script for Chrome Built-in AI
+// Prompts are injected via window.__BB_PROMPTS__ (Approach B)
 (() => {
+  // Prompts are injected here by content script
+  const PROMPTS = window.__BB_PROMPTS__ || {
+    CLASSIFICATION_PROMPT_TEMPLATE: 'Analyze if this title is clickbait (uses curiosity gap, emotional triggers, or withholds key information).\nTitle: "{title}"\n\nReturn JSON with fields: isClickbait (boolean), confidence (0-1), reason (short).',
+    SUMMARIZATION_CONTEXT_TEMPLATE: 'Answer the clickbait-style question concisely in one short sentence. Title: {title}',
+    CLASSIFICATION_SCHEMA: {
+      "type": "object",
+      "properties": {
+        "isClickbait": { "type": "boolean" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "reason": { "type": "string" }
+      },
+      "required": ["isClickbait", "confidence"]
+    }
+  };
+
   let promptSession = null;
   let summarizer = null;
 
@@ -30,31 +46,28 @@
     } catch (e) { return null; }
   }
 
+  function buildClassificationPrompt(text) {
+    return PROMPTS.CLASSIFICATION_PROMPT_TEMPLATE.replace('{title}', text.replace(/"/g, '\\"'));
+  }
+
+  function buildSummarizationContext(title = '') {
+    return PROMPTS.SUMMARIZATION_CONTEXT_TEMPLATE.replace('{title}', title);
+  }
+
   async function classify(text) {
     const session = await ensurePromptSession();
     if (!session) throw new Error('Prompt session not ready');
-    const schema = {
-      "type":"object",
-      "properties":{
-        "isClickbait":{"type":"boolean"},
-        "confidence":{"type":"number","minimum":0,"maximum":1},
-        "reason":{"type":"string"}
-      },
-      "required":["isClickbait","confidence"]
-    };
-    const prompt = 'Analyze if this title is clickbait (uses curiosity gap, emotional triggers, or withholds key information).\n' +
-                   'Title: "' + text.replace(/"/g, '\"') + '"\n' +
-                   'Return JSON with fields: isClickbait (boolean), confidence (0-1), reason (short).';
-    const res = await session.prompt(prompt, { responseConstraint: schema });
+    const prompt = buildClassificationPrompt(text);
+    const res = await session.prompt(prompt, { responseConstraint: PROMPTS.CLASSIFICATION_SCHEMA });
     return JSON.parse(res);
   }
 
   async function summarize(text, context) {
     const s = await ensureSummarizer();
     if (!s) throw new Error('Summarizer not ready');
+    const title = context && context.questionLikeTitle ? context.questionLikeTitle : '';
     const ctx = {
-      context: 'Answer the clickbait-style question concisely in one short sentence. Title: ' +
-               (context && context.questionLikeTitle ? context.questionLikeTitle : '')
+      context: buildSummarizationContext(title)
     };
     const out = await s.summarize(text, ctx);
     return out;

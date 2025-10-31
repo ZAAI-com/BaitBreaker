@@ -37,5 +37,15 @@
       "48": "icons/icon-48.png",
       "128": "icons/icon-128.png"
     }
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "src/content/inpage.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
 }
