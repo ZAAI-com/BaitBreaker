@@ -12,17 +12,17 @@
 
 ### BaitBreaker Tooltip
 
-![BaitBreaker Tooltip Screenshot](screenshots/tooltip.png)
+![BaitBreaker Tooltip Screenshot](Screenshots/Screenshot-BaitBreaker-Tooltip.png)
 
 
 ### BaitBreaker Settings
 
-![BaitBreaker Settings Screenshot](screenshots/settings.png)
+![BaitBreaker Settings Screenshot](Screenshots/Screenshot-BaitBreaker-Settings.png)
 
 
 ### Newspage without BaitBreaker
 
-![Newspage without BaitBreaker Screenshot](screenshots/no-baitbreaker.png)
+![Newspage without BaitBreaker Screenshot](Screenshots/Screenshot-BaitBreaker-Without.png)
 
 
 
