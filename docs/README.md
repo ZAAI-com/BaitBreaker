@@ -1,5 +1,5 @@
-# BaitBreaker — Chrome Extension
-**Instant answers to clickbait.** BaitBreaker scans pages for clickbait‑style links, adds a `[B]` badge, and on hover shows a concise answer distilled from the target article—so you don't have to click.
+# BaitBreaker (Chrome Extension)
+**Fighting Clickbait with instant title answers** BaitBreaker scans pages for clickbait‑style links, adds a `[B]` badge and on hover shows a concise answer distilled from the target article. So you don't have to click.
 
 ## Key features
 - Detects likely clickbait titles (regex + on‑device AI)
@@ -8,10 +8,23 @@
 - All AI runs **on‑device** with Chrome’s built‑in Gemini Nano
 - One‑time model download; privacy‑friendly (no server calls for AI)
 
-## Install (Unpacked)
-1. Download and unzip this repo.
-2. Visit `chrome://extensions` → **Load unpacked** → select the folder.
-3. Open any news site and hover a `[B]` badge.
+## Screenshots
+
+### BaitBreaker Tooltip
+
+![BaitBreaker Tooltip Screenshot](screenshots/tooltip.png)
+
+
+### BaitBreaker Settings
+
+![BaitBreaker Settings Screenshot](screenshots/settings.png)
+
+
+### Newspage without BaitBreaker
+
+![Newspage without BaitBreaker Screenshot](screenshots/no-baitbreaker.png)
+
+
 
 ## How it works
 - **Content script** finds candidate links and injects an **in‑page script** (`inpage.js`) to access the Prompt and Summarizer APIs. Those APIs are not available in service workers or web workers.
