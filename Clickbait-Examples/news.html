@@ -3,33 +3,505 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Daily News Headlines</title>
+  <title>The News News - Breaking News & Latest Headlines</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f2f2f2; padding: 0; }
-    .container { max-width: 700px; margin: 40px auto; background: #fff; border-radius: 10px; box-shadow: 0 4px 18px #0001; padding: 32px 24px; }
-    h1 { text-align: center; color: #2c3e50; }
-    ul { list-style: none; padding: 0; margin: 0; }
-    li { padding: 18px 0; border-bottom: 1px solid #e0e0e0; }
-    li:last-child { border-bottom: none; }
-    .headline-link { text-decoration: none; color: inherit; }
-    .headline-link:hover { text-decoration: underline; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+      background: #f5f5f5;
+      color: #333;
+      line-height: 1.6;
+    }
+
+    /* Header */
+    .header {
+      background: #1a1a1a;
+      color: #fff;
+      padding: 12px 0;
+      border-bottom: 3px solid #b91c1c;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -1px;
+      color: #fff;
+      text-decoration: none;
+      font-family: Georgia, serif;
+    }
+
+    .logo:hover {
+      opacity: 0.9;
+    }
+
+
+    /* Navigation */
+    .nav {
+      background: #2c2c2c;
+      border-bottom: 1px solid #444;
+    }
+
+    .nav-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    .nav-links {
+      display: flex;
+      list-style: none;
+      flex-wrap: wrap;
+    }
+
+    .nav-links li {
+      border-right: 1px solid #444;
+    }
+
+    .nav-links li:last-child {
+      border-right: none;
+    }
+
+    .nav-links a {
+      display: block;
+      padding: 14px 20px;
+      color: #fff;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+
+    .nav-links a:hover {
+      background: #3a3a3a;
+    }
+
+    .nav-links a.active {
+      background: #b91c1c;
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 30px 20px;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 30px;
+    }
+
+    /* Main Content */
+    .main-content {
+      background: #fff;
+      padding: 0;
+    }
+
+    .section-header {
+      background: #b91c1c;
+      color: #fff;
+      padding: 15px 25px;
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .articles-list {
+      list-style: none;
+    }
+
+    .article-item {
+      padding: 14px 25px;
+      border-bottom: 1px solid #e5e5e5;
+      transition: background 0.2s;
+    }
+
+    .article-item:hover {
+      background: #fafafa;
+    }
+
+    .article-item:last-child {
+      border-bottom: none;
+    }
+
+    .article-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .article-category {
+      color: #6b7280;
+      padding: 0;
+      font-weight: 600;
+      font-size: 11px;
+    }
+
+    .article-date {
+      color: #999;
+    }
+
+    .headline-link {
+      text-decoration: none;
+      color: #1a1a1a;
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 1.4;
+      display: inline-block;
+      max-width: calc(100% - 50px);
+      vertical-align: baseline;
+      transition: color 0.2s;
+    }
+
+    .headline-link:hover {
+      color: #b91c1c;
+    }
+
+    /* Ensure BaitBreaker indicator stays inline with headline */
+    .article-item .bb-indicator {
+      display: inline-block;
+      vertical-align: baseline;
+      margin-left: 6px;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .sidebar-widget {
+      background: #fff;
+      border: 1px solid #e5e5e5;
+    }
+
+    .widget-header {
+      background: #333;
+      color: #fff;
+      padding: 12px 18px;
+      font-size: 16px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .widget-content {
+      padding: 18px;
+    }
+
+    .trending-list {
+      list-style: none;
+    }
+
+    .trending-item {
+      padding: 12px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .trending-item:last-child {
+      border-bottom: none;
+    }
+
+    .trending-link {
+      text-decoration: none;
+      color: #333;
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1.5;
+      display: block;
+    }
+
+    .trending-link:hover {
+      color: #b91c1c;
+    }
+
+    .trending-number {
+      display: inline-block;
+      background: #b91c1c;
+      color: #fff;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 24px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-right: 10px;
+    }
+
+    /* Footer */
+    .footer {
+      background: #1a1a1a;
+      color: #ccc;
+      padding: 40px 20px 20px;
+      margin-top: 60px;
+    }
+
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+
+    .footer-section h3 {
+      color: #fff;
+      font-size: 16px;
+      margin-bottom: 15px;
+      font-weight: 600;
+    }
+
+    .footer-links {
+      list-style: none;
+    }
+
+    .footer-links li {
+      margin-bottom: 8px;
+    }
+
+    .footer-links a {
+      color: #ccc;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .footer-links a:hover {
+      color: #fff;
+      text-decoration: underline;
+    }
+
+    .footer-bottom {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding-top: 20px;
+      border-top: 1px solid #333;
+      text-align: center;
+      font-size: 13px;
+      color: #999;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+
+      .header-content {
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .logo {
+        font-size: 24px;
+      }
+
+      .nav-links {
+        justify-content: center;
+      }
+
+      .nav-links a {
+        padding: 12px 15px;
+        font-size: 14px;
+      }
+    }
   </style>
 </head>
 <body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-content">
+      <a href="#" class="logo">The News News</a>
+    </div>
+  </header>
+
+  <!-- Navigation -->
+  <nav class="nav">
+    <div class="nav-content">
+      <ul class="nav-links">
+        <li><a href="#" class="active">Home</a></li>
+        <li><a href="#">World</a></li>
+        <li><a href="#">Politics</a></li>
+        <li><a href="#">Business</a></li>
+        <li><a href="#">Technology</a></li>
+        <li><a href="#">Science</a></li>
+        <li><a href="#">Sports</a></li>
+        <li><a href="#">Entertainment</a></li>
+        <li><a href="#">Health</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
   <div class="container">
-    <h1>Today's News</h1>
-    <ul>
-      <li><a href="news-articles/article1.html" class="headline-link">This Simple Habit Will Change Your Life Forever!</a></li>
-      <li><a href="news-articles/article2.html" class="headline-link">Scientists Announce Breakthrough in Renewable Energy</a></li>
-      <li><a href="news-articles/article3.html" class="headline-link">Local Team Wins Championship After Dramatic Finale</a></li>
-      <li><a href="news-articles/article4.html" class="headline-link">Global Markets Rally After Economic Report</a></li>
-      <li><a href="news-articles/article5.html" class="headline-link">You Won't Believe What This Celebrity Did at the Gala</a></li>
-      <li><a href="news-articles/article6.html" class="headline-link">New Wildlife Sanctuary Opens to the Public</a></li>
-      <li><a href="news-articles/article7.html" class="headline-link">Art Exhibit Features Rising Young Talents</a></li>
-      <li><a href="news-articles/article8.html" class="headline-link">Doctors Are Stunned by This One Food That Burns Fat</a></li>
-      <li><a href="news-articles/article9.html" class="headline-link">Tech Conference Highlights: The Future of AI</a></li>
-      <li><a href="news-articles/article10.html" class="headline-link">City Expands Bike Lane Network for Cyclists</a></li>
-    </ul>
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="section-header">Top Stories</div>
+      <ul class="articles-list">
+        <li class="article-item">
+          <div class="article-meta">
+            <span class="article-category">Health</span>
+            <span class="article-date">Today, 2:15 PM</span>
+          </div>
+          <a href="news-articles/article1.html" class="headline-link">This Simple Habit Will Change Your Life Forever!</a>
+        </li>
+        <li class="article-item">
+          <div class="article-meta">
+            <span class="article-category">Science</span>
+            <span class="article-date">Today, 1:45 PM</span>
+          </div>
+          <a href="news-articles/article2.html" class="headline-link">Scientists Announce Breakthrough in Renewable Energy</a>
+        </li>
+        <li class="article-item">
+          <div class="article-meta">
+            <span class="article-category">Sports</span>
+            <span class="article-date">Today, 1:20 PM</span>
+          </div>
+          <a href="news-articles/article3.html" class="headline-link">Local Team Wins Championship After Dramatic Finale</a>
+        </li>
+        <li class="article-item">
+          <div class="article-meta">
+            <span class="article-category">Business</span>
+            <span class="article-date">Today, 12:30 PM</span>
+          </div>
+          <a href="news-articles/article4.html" class="headline-link">Global Markets Rally After Economic Report</a>
+        </li>
+        <li class="article-item">
+          <div class="article-meta">
+            <span class="article-category">Entertainment</span>
+            <span class="article-date">Today, 11:15 AM</span>
+          </div>
+          <a href="news-articles/article5.html" class="headline-link">You Won't Believe What This Celebrity Did at the Gala</a>
+        </li>
+        <li class="article-item">
+          <div class="article-meta">
+            <span class="article-category">Environment</span>
+            <span class="article-date">Today, 10:45 AM</span>
+          </div>
+          <a href="news-articles/article6.html" class="headline-link">New Wildlife Sanctuary Opens to the Public</a>
+        </li>
+        <li class="article-item">
+          <div class="article-meta">
+            <span class="article-category">Arts</span>
+            <span class="article-date">Today, 9:30 AM</span>
+          </div>
+          <a href="news-articles/article7.html" class="headline-link">Art Exhibit Features Rising Young Talents</a>
+        </li>
+        <li class="article-item">
+          <div class="article-meta">
+            <span class="article-category">Health</span>
+            <span class="article-date">Today, 8:20 AM</span>
+          </div>
+          <a href="news-articles/article8.html" class="headline-link">Doctors Are Stunned by This One Food That Burns Fat</a>
+        </li>
+        <li class="article-item">
+          <div class="article-meta">
+            <span class="article-category">Technology</span>
+            <span class="article-date">Today, 7:15 AM</span>
+          </div>
+          <a href="news-articles/article9.html" class="headline-link">Tech Conference Highlights: The Future of AI</a>
+        </li>
+        <li class="article-item">
+          <div class="article-meta">
+            <span class="article-category">Local</span>
+            <span class="article-date">Yesterday, 6:00 PM</span>
+          </div>
+          <a href="news-articles/article10.html" class="headline-link">City Expands Bike Lane Network for Cyclists</a>
+        </li>
+      </ul>
+    </main>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-widget">
+        <div class="widget-header">Latest Updates</div>
+        <div class="widget-content">
+          <ul class="trending-list">
+            <li class="trending-item">
+              <a href="news-articles/article4.html" class="trending-link">Global Markets Rally After Economic Report</a>
+            </li>
+            <li class="trending-item">
+              <a href="news-articles/article9.html" class="trending-link">Tech Conference Highlights: The Future of AI</a>
+            </li>
+            <li class="trending-item">
+              <a href="news-articles/article7.html" class="trending-link">Art Exhibit Features Rising Young Talents</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </aside>
   </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-section">
+        <h3>About Us</h3>
+        <ul class="footer-links">
+          <li><a href="#">Our Story</a></li>
+          <li><a href="#">Editorial Team</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Contact Us</a></li>
+        </ul>
+      </div>
+      <div class="footer-section">
+        <h3>News Sections</h3>
+        <ul class="footer-links">
+          <li><a href="#">World</a></li>
+          <li><a href="#">Politics</a></li>
+          <li><a href="#">Business</a></li>
+          <li><a href="#">Technology</a></li>
+          <li><a href="#">Sports</a></li>
+        </ul>
+      </div>
+      <div class="footer-section">
+        <h3>Follow Us</h3>
+        <ul class="footer-links">
+          <li><a href="#">Twitter</a></li>
+          <li><a href="#">Facebook</a></li>
+          <li><a href="#">Instagram</a></li>
+          <li><a href="#">YouTube</a></li>
+        </ul>
+      </div>
+      <div class="footer-section">
+        <h3>Legal</h3>
+        <ul class="footer-links">
+          <li><a href="#">Privacy Policy</a></li>
+          <li><a href="#">Terms of Service</a></li>
+          <li><a href="#">Cookie Policy</a></li>
+          <li><a href="#">Accessibility</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2024 The News News. All rights reserved.</p>
+    </div>
+  </footer>
+
 </body>
 </html>

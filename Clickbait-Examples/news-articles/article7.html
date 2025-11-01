@@ -3,68 +3,358 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Art Exhibit Features Rising Young Talents</title>
+  <title>Art Exhibit Features Rising Young Talents - The News News</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { 
-      font-family: 'Georgia', 'Times New Roman', serif; 
-      background: #f5f5f0; 
-      padding: 20px;
-      line-height: 1.8;
-      color: #1a1a1a;
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+      background: #f5f5f5;
+      color: #333;
+      line-height: 1.6;
+    }
+
+    /* Header */
+    .header {
+      background: #1a1a1a;
+      color: #fff;
+      padding: 12px 0;
+      border-bottom: 3px solid #b91c1c;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -1px;
+      color: #fff;
+      text-decoration: none;
+      font-family: Georgia, serif;
+    }
+
+    .logo:hover {
+      opacity: 0.9;
+    }
+
+
+    /* Navigation */
+    .nav {
+      background: #2c2c2c;
+      border-bottom: 1px solid #444;
+    }
+
+    .nav-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    .nav-links {
+      display: flex;
+      list-style: none;
+      flex-wrap: wrap;
+    }
+
+    .nav-links li {
+      border-right: 1px solid #444;
+    }
+
+    .nav-links li:last-child {
+      border-right: none;
+    }
+
+    .nav-links a {
+      display: block;
+      padding: 14px 20px;
+      color: #fff;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+
+    .nav-links a:hover {
+      background: #3a3a3a;
+    }
+
+    .nav-links a.active {
+      background: #b91c1c;
+    }
+
+    /* Article Container */
+    .article-container {
       max-width: 900px;
       margin: 0 auto;
+      padding: 40px 20px;
+      background: #fff;
     }
-    body::before {
-      content: '';
-      display: block;
-      height: 4px;
-      background: #000;
-      margin-bottom: 30px;
+
+    .article-content {
+      font-family: Georgia, 'Times New Roman', serif;
+      line-height: 1.8;
+      color: #1a1a1a;
     }
-    h1 { 
+
+    .article-content h1 {
       font-size: 2.5em;
       font-weight: bold;
       color: #000;
-      margin: 20px 0 30px 0;
+      margin: 0 0 30px 0;
       line-height: 1.2;
       text-align: left;
       font-family: 'Times New Roman', serif;
-      border-bottom: 3px double #000;
+      border-bottom: 3px double #b91c1c;
       padding-bottom: 20px;
     }
-    p {
+
+    .article-content h2 {
+      font-size: 1.5em;
+      font-weight: bold;
+      margin: 40px 0 20px 0;
+      color: #000;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-top: 2px solid #e5e5e5;
+      padding-top: 15px;
+    }
+
+    .article-content p {
       margin: 20px 0;
       text-align: justify;
       font-size: 1.1em;
       line-height: 1.8;
     }
-    p:first-of-type {
+
+    .article-content p:first-of-type {
       font-size: 1.2em;
       font-weight: normal;
       margin-top: 30px;
     }
-    a {
+
+    .article-content strong {
+      font-weight: bold;
       color: #000;
+    }
+
+    .article-content em {
+      font-style: italic;
+    }
+
+    .article-content ul, .article-content ol {
+      margin: 25px 0;
+      padding-left: 30px;
+    }
+
+    .article-content li {
+      margin: 15px 0;
+      line-height: 1.8;
+    }
+
+    .article-content a {
+      color: #b91c1c;
       text-decoration: underline;
       font-weight: normal;
+    }
+
+    .article-content a:hover {
+      text-decoration: none;
+      color: #991b1b;
+    }
+
+    .back-link {
       display: inline-block;
       margin-top: 40px;
       padding-top: 20px;
-      border-top: 1px solid #ccc;
-    }
-    a:hover {
+      border-top: 1px solid #e5e5e5;
+      color: #b91c1c;
       text-decoration: none;
-      background: #f0f0f0;
+      font-weight: 500;
+      transition: color 0.2s;
     }
-    @media print {
-      body { background: #fff; }
+
+    .back-link:hover {
+      color: #991b1b;
+      text-decoration: underline;
+    }
+
+    /* Footer */
+    .footer {
+      background: #1a1a1a;
+      color: #ccc;
+      padding: 40px 20px 20px;
+      margin-top: 60px;
+    }
+
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+
+    .footer-section h3 {
+      color: #fff;
+      font-size: 16px;
+      margin-bottom: 15px;
+      font-weight: 600;
+    }
+
+    .footer-links {
+      list-style: none;
+    }
+
+    .footer-links li {
+      margin-bottom: 8px;
+    }
+
+    .footer-links a {
+      color: #ccc;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .footer-links a:hover {
+      color: #fff;
+      text-decoration: underline;
+    }
+
+    .footer-bottom {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding-top: 20px;
+      border-top: 1px solid #333;
+      text-align: center;
+      font-size: 13px;
+      color: #999;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header-content {
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .logo {
+        font-size: 24px;
+      }
+
+      .nav-links {
+        justify-content: center;
+      }
+
+      .nav-links a {
+        padding: 12px 15px;
+        font-size: 14px;
+      }
+
+      .article-container {
+        padding: 20px 15px;
+      }
+
+      .article-content h1 {
+        font-size: 2em;
+      }
     }
   </style>
 </head>
 <body>
-<h1>Art Exhibit Features Rising Young Talents</h1>
-<p>This year’s City Gallery Spring Exhibit showcases emerging artists under 25 years old, whose works range from modern sculpture to digital installations. Several pieces have already drawn interest from respected collectors.</p>
-<a href="../news.html">&larr; Back to headlines</a>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-content">
+      <a href="../news.html" class="logo">The News News</a>
+    </div>
+  </header>
+
+  <!-- Navigation -->
+  <nav class="nav">
+    <div class="nav-content">
+      <ul class="nav-links">
+        <li><a href="../news.html">Home</a></li>
+        <li><a href="#">World</a></li>
+        <li><a href="#">Politics</a></li>
+        <li><a href="#">Business</a></li>
+        <li><a href="#">Technology</a></li>
+        <li><a href="#">Science</a></li>
+        <li><a href="#">Sports</a></li>
+        <li><a href="#">Entertainment</a></li>
+        <li><a href="#">Health</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Article Content -->
+  <div class="article-container">
+    <article class="article-content">
+      <h1>Art Exhibit Features Rising Young Talents</h1>
+      <p>This year's City Gallery Spring Exhibit showcases emerging artists under 25 years old, whose works range from modern sculpture to digital installations. Several pieces have already drawn interest from respected collectors.</p>
+      <a href="../news.html" class="back-link">&larr; Back to headlines</a>
+    </article>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-section">
+        <h3>About Us</h3>
+        <ul class="footer-links">
+          <li><a href="#">Our Story</a></li>
+          <li><a href="#">Editorial Team</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Contact Us</a></li>
+        </ul>
+      </div>
+      <div class="footer-section">
+        <h3>News Sections</h3>
+        <ul class="footer-links">
+          <li><a href="#">World</a></li>
+          <li><a href="#">Politics</a></li>
+          <li><a href="#">Business</a></li>
+          <li><a href="#">Technology</a></li>
+          <li><a href="#">Sports</a></li>
+        </ul>
+      </div>
+      <div class="footer-section">
+        <h3>Follow Us</h3>
+        <ul class="footer-links">
+          <li><a href="#">Twitter</a></li>
+          <li><a href="#">Facebook</a></li>
+          <li><a href="#">Instagram</a></li>
+          <li><a href="#">YouTube</a></li>
+        </ul>
+      </div>
+      <div class="footer-section">
+        <h3>Legal</h3>
+        <ul class="footer-links">
+          <li><a href="#">Privacy Policy</a></li>
+          <li><a href="#">Terms of Service</a></li>
+          <li><a href="#">Cookie Policy</a></li>
+          <li><a href="#">Accessibility</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2024 The News News. All rights reserved.</p>
+    </div>
+  </footer>
+
 </body>
 </html>
