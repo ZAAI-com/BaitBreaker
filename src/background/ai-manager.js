@@ -1,4 +1,6 @@
 // src/background/ai-manager.js
+import { buildClassificationPrompt, CLASSIFICATION_SCHEMA } from '../../config/prompts.js';
+
 export class AIManager {
   constructor() {
     this.promptSession = null;
@@ -72,23 +74,10 @@ export class AIManager {
   }
 
   async classifyClickbait(linkText) {
-    const schema = {
-      type: "object",
-      properties: {
-        isClickbait: { type: "boolean" },
-        confidence: { type: "number", minimum: 0, maximum: 1 },
-        reason: { type: "string" }
-      },
-      required: ["isClickbait", "confidence"]
-    };
-
-    const prompt = `Analyze if this title is clickbait (uses curiosity gap, emotional triggers, or withholds key information):
-"${linkText}"
-
-Return JSON with isClickbait (boolean), confidence (0-1), and reason.`;
+    const prompt = buildClassificationPrompt(linkText);
 
     const result = await this.promptSession.prompt(prompt, {
-      responseConstraint: schema
+      responseConstraint: CLASSIFICATION_SCHEMA
     });
 
     try {

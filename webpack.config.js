@@ -57,6 +57,7 @@ module.exports = {
         },
         { from: 'icons', to: 'icons' },
         { from: 'src/styles', to: 'styles' },
+        { from: 'src/content/inpage.js', to: 'src/content/inpage.js' },
         {
           from: 'src/popup/popup.html',
           transform(content) {
