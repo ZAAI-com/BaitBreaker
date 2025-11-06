@@ -3,6 +3,10 @@ node_modules/
 
 # Build output
 dist/
+*.zip
+
+# Coverage
+coverage/
 
 # OS files
 .DS_Store
