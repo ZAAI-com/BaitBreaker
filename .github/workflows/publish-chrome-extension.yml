@@ -1,0 +1,74 @@
+name: Publish to Chrome Web Store
+
+on:
+  # Trigger on version tags (e.g., v1.0.0)
+  push:
+    tags:
+      - 'v*'
+  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+        continue-on-error: false
+
+      - name: Build extension
+        run: npm run build
+
+      - name: Create extension package
+        run: |
+          cd dist
+          zip -r ../baitbreaker-extension.zip .
+          cd ..
+
+      - name: Get version from tag or input
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
+
+      - name: Publish to Chrome Web Store
+        run: |
+          node scripts/upload-to-chrome-store.js \
+            "${{ secrets.CHROME_WEB_STORE_CLIENT_ID }}" \
+            "${{ secrets.CHROME_WEB_STORE_CLIENT_SECRET }}" \
+            "${{ secrets.CHROME_WEB_STORE_REFRESH_TOKEN }}" \
+            "${{ secrets.CHROME_WEB_STORE_EXTENSION_ID }}" \
+            baitbreaker-extension.zip \
+            true
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: baitbreaker-extension.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
