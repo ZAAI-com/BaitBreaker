@@ -1,0 +1,107 @@
+name: CI - Build and Test
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'cursor/**'
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linter (if available)
+        run: npm run lint || echo "No linter configured"
+        continue-on-error: true
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        if: always()
+        with:
+          fail_ci_if_error: false
+
+      - name: Build extension
+        run: npm run build
+
+      - name: Validate build output
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "❌ Build failed: dist directory not found"
+            exit 1
+          fi
+          
+          if [ ! -f "dist/manifest.json" ]; then
+            echo "❌ Build failed: manifest.json not found in dist"
+            exit 1
+          fi
+          
+          if [ ! -f "dist/background.bundle.js" ]; then
+            echo "❌ Build failed: background.bundle.js not found"
+            exit 1
+          fi
+          
+          if [ ! -f "dist/content.bundle.js" ]; then
+            echo "❌ Build failed: content.bundle.js not found"
+            exit 1
+          fi
+          
+          echo "✅ Build validation passed"
+
+      - name: Create extension artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: extension-build
+          path: dist/
+          retention-days: 30
+
+  version-check:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check version consistency
+        run: |
+          # Extract versions
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          MANIFEST_VERSION=$(node -p "require('./manifest.json').version")
+          
+          echo "📦 package.json version: $PACKAGE_VERSION"
+          echo "📋 manifest.json version: $MANIFEST_VERSION"
+          
+          # Check if versions match
+          if [ "$PACKAGE_VERSION" != "$MANIFEST_VERSION" ]; then
+            echo "❌ Version mismatch detected!"
+            echo "Please ensure package.json and manifest.json have the same version."
+            exit 1
+          fi
+          
+          echo "✅ Versions are consistent"

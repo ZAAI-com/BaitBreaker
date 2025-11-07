@@ -8,7 +8,11 @@
     "clean": "rm -rf dist",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "package": "npm run build && cd dist && zip -r ../baitbreaker.zip .",
+    "version:check": "node -e \"const p=require('./package.json').version; const m=require('./manifest.json').version; if(p!==m){console.error('Version mismatch!',{package:p,manifest:m}); process.exit(1);} console.log('Versions match:',p);\"",
+    "prebuild": "npm run version:check",
+    "prepackage": "npm test"
   },
   "keywords": [
     "chrome-extension",
