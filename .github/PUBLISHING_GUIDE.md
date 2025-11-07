@@ -107,8 +107,8 @@ Go to your GitHub repository settings:
 ```bash
 # Update version in package.json and manifest.json first!
 # Then create and push a version tag:
-git tag v1.0.0
-git push origin v1.0.0
+git tag 1.0.0
+git push origin 1.0.0
 ```
 
 This automatically:
@@ -152,10 +152,10 @@ zip -r baitbreaker.zip .
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - '*.*.*'
 ```
 
-- Triggers automatically on version tags (e.g., `v1.0.0`, `v2.1.3`)
+- Triggers automatically on version tags (e.g., `1.0.0`, `2.1.3`)
 - Builds, tests, and publishes
 - Automatically submits for review
 - Creates a GitHub Release
@@ -206,8 +206,8 @@ git commit -m "Bump version to 1.1.0"
 git push
 
 # 5. Tag and trigger workflow
-git tag v1.1.0
-git push origin v1.1.0
+git tag 1.1.0
+git push origin 1.1.0
 ```
 
 ---

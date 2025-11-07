@@ -28,7 +28,7 @@ This directory contains automated workflows for the BaitBreaker Chrome extension
 - ✅ Creates GitHub Release
 
 **Triggers:**
-- Push of version tags (e.g., `v1.0.0`)
+- Push of version tags (e.g., `1.0.0`)
 - Manual workflow dispatch from Actions tab
 
 ## 🚀 Quick Start Guides
@@ -84,7 +84,7 @@ Automated version management script
                   │                              │ • Check versions │
                   │                              └──────────────────┘
                   │
-                  └─── Push Tag (v*.*.*) ────────────────┐
+                  └─── Push Tag (*.*.*) ─────────────────┐
                                                           │
                                                           ▼
                                          ┌────────────────────────────┐
@@ -149,8 +149,8 @@ git commit -m "Bump version to X.Y.Z"
 git push
 
 # 5. Create and push tag (triggers publish workflow)
-git tag vX.Y.Z
-git push origin vX.Y.Z
+git tag X.Y.Z
+git push origin X.Y.Z
 ```
 
 ### Manual Publishing (Alternative)
@@ -225,14 +225,14 @@ ls -la dist/
 **Tag already exists:**
 ```bash
 # Delete local tag
-git tag -d v1.0.0
+git tag -d 1.0.0
 
 # Delete remote tag
-git push --delete origin v1.0.0
+git push --delete origin 1.0.0
 
 # Create new tag
-git tag v1.0.0
-git push origin v1.0.0
+git tag 1.0.0
+git push origin 1.0.0
 ```
 
 ## 📚 Additional Resources

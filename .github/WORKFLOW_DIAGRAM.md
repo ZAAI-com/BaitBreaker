@@ -23,8 +23,8 @@ $ git push
 
 Step 3: Create Tag (TRIGGERS AUTOMATION)
 ─────────────────────────────────────────
-$ git tag vX.Y.Z
-$ git push origin vX.Y.Z
+$ git tag X.Y.Z
+$ git push origin X.Y.Z
                 │
                 └──────────────────────────┐
                                            │
@@ -60,7 +60,7 @@ $ git push origin vX.Y.Z
 │  └────────┬───────┘                                                     │
 │           │                                                              │
 │  ┌────────▼───────┐                                                     │
-│  │ 6. Create ZIP  │  zip -r baitbreaker-vX.Y.Z.zip dist/               │
+│  │ 6. Create ZIP  │  zip -r baitbreaker-X.Y.Z.zip dist/                │
 │  └────────┬───────┘                                                     │
 │           │                                                              │
 │           ├──────────────────────────────┬──────────────────────────────┤
@@ -193,8 +193,8 @@ Step 2: GitHub Repository     │
                 │
 Step 3: Push Tag              │
 ────────────────              │
-  git tag vX.Y.Z              │
-  git push origin vX.Y.Z      │
+  git tag X.Y.Z               │
+  git push origin X.Y.Z       │
        │                      │
        └──────────────────────┴──> Workflow Uses Secrets
                                     (Secure, never exposed)
@@ -320,8 +320,8 @@ npm run build                      # Build extension
 npm run package                    # Build + create ZIP
 
 # Publishing
-git tag vX.Y.Z                     # Create version tag
-git push origin vX.Y.Z             # Trigger publish workflow
+git tag X.Y.Z                      # Create version tag
+git push origin X.Y.Z              # Trigger publish workflow
 
 # Monitoring
 # GitHub → Actions → Workflow runs

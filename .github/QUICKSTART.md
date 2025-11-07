@@ -65,8 +65,8 @@ npm test
 git add package*.json manifest.json
 git commit -m "Bump version to X.Y.Z"
 git push
-git tag vX.Y.Z
-git push origin vX.Y.Z
+git tag X.Y.Z
+git push origin X.Y.Z
 ```
 
 ### Option B: Manual
@@ -80,8 +80,8 @@ npm test
 git add package*.json manifest.json
 git commit -m "Bump version to X.Y.Z"
 git push
-git tag vX.Y.Z
-git push origin vX.Y.Z
+git tag X.Y.Z
+git push origin X.Y.Z
 ```
 
 ## ✅ That's It!

@@ -113,8 +113,8 @@ npm test
 git add package*.json manifest.json
 git commit -m "Bump version to 1.0.1"
 git push
-git tag v1.0.1
-git push origin v1.0.1
+git tag 1.0.1
+git push origin 1.0.1
 ```
 
 **GitHub Actions will automatically:**
@@ -148,7 +148,7 @@ View releases at: **Releases** tab in your repository
 npm test
 git add package*.json manifest.json
 git commit -m "Fix: Tooltip rendering issue"
-git push && git tag v1.0.1 && git push origin v1.0.1
+git push && git tag 1.0.1 && git push origin 1.0.1
 ```
 
 ### Example 2: Minor Release (New Feature)
@@ -157,7 +157,7 @@ git push && git tag v1.0.1 && git push origin v1.0.1
 npm test
 git add package*.json manifest.json
 git commit -m "Add: Dark mode support"
-git push && git tag v1.1.0 && git push origin v1.1.0
+git push && git tag 1.1.0 && git push origin 1.1.0
 ```
 
 ### Example 3: Manual Publishing
