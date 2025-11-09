@@ -19,21 +19,21 @@ git push origin 1.0.0
 ## Files Updated
 
 ### 1. **GitHub Actions Workflow** (`.github/workflows/publish.yml`)
-   - **Changed:** Tag trigger pattern from `'v*.*.*'` to `'*.*.*'`
-   - **Effect:** Workflow now triggers on tags like `1.0.0` instead of `v1.0.0`
+- **Changed:** Tag trigger pattern from `'v*.*.*'` to `'[0-9]+.[0-9]+.[0-9]+'`
+- **Effect:** Workflow now triggers on tags like `1.0.0` instead of `v1.0.0`
 
 ### 2. **Version Bump Script** (`scripts/bump-version.sh`)
-   - **Changed:** Git tag commands now suggest `git tag X.Y.Z` (without "v")
-   - **Effect:** Script output provides correct tagging commands
+- **Changed:** Git tag commands now suggest `git tag X.Y.Z` (without "v")
+- **Effect:** Script output provides correct tagging commands
 
 ### 3. **Documentation Files** (All `.md` files in `.github/`)
-   - **Updated Files:**
-     - `QUICKSTART.md`
-     - `PUBLISHING_GUIDE.md`
-     - `README.md`
-     - `WORKFLOW_DIAGRAM.md`
-     - `PUBLISHING_SETUP_SUMMARY.md`
-   - **Changed:** All examples updated to use tags without "v" prefix
+- **Updated Files:**
+  - `QUICKSTART.md`
+  - `PUBLISHING_GUIDE.md`
+  - `README.md`
+  - `WORKFLOW_DIAGRAM.md`
+  - `PUBLISHING_SETUP_SUMMARY.md`
+- **Changed:** All examples updated to use tags without "v" prefix
 
 ## Why This Change?
 

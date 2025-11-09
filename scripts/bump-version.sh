@@ -3,7 +3,7 @@
 # BaitBreaker Version Bump Script
 # This script updates the version in both package.json and manifest.json
 
-set -e
+set -euo pipefail
 
 # Colors for output
 RED='\033[0;31m'
@@ -30,84 +30,165 @@ usage() {
     exit 1
 }
 
+update_json_version() {
+    local file="$1"
+    local backup="${file}.bak"
+    local tmp="${file}.tmp"
+
+    cp "$file" "$backup"
+
+    if command -v jq &> /dev/null; then
+        if ! jq ".version = \"$NEW_VERSION\"" "$file" > "$tmp"; then
+            echo -e "${RED}Error: Failed to update $file with jq${NC}"
+            mv "$backup" "$file"
+            rm -f "$tmp"
+            exit 1
+        fi
+    else
+        if ! NEW_VERSION="$NEW_VERSION" node - "$backup" <<'NODE' > "$tmp"; then
+const fs = require('fs');
+const file = process.argv[1];
+const version = process.env.NEW_VERSION;
+const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+data.version = version;
+process.stdout.write(JSON.stringify(data, null, 2) + '\n');
+NODE
+            echo -e "${RED}Error: Failed to update $file with Node fallback${NC}"
+            mv "$backup" "$file"
+            rm -f "$tmp"
+            exit 1
+        fi
+    fi
+
+    mv "$tmp" "$file"
+    rm -f "$backup"
+}
+
 # Check if version argument is provided
 if [ $# -eq 0 ]; then
     echo -e "${RED}Error: No version type specified${NC}"
     usage
 fi
 
-VERSION_TYPE=$1
+VERSION_TYPE="$1"
+
+# Helpful hint if script lacks execute permissions
+if [ ! -x "$0" ]; then
+    printf "%b" "${YELLOW}Note: This script may require execute permissions. If you encounter 'Permission denied', run: chmod +x $0${NC}\n"
+fi
+
+# Ensure script is run from repo root
+if [ ! -f "package.json" ] || [ ! -f "manifest.json" ]; then
+    echo -e "${RED}Error: package.json or manifest.json not found${NC}"
+    echo "Please run this script from the repository root directory"
+    exit 1
+fi
+
+# Check for required commands
+if ! command -v node &> /dev/null; then
+    echo -e "${RED}Error: Node.js is not installed${NC}"
+    echo "Please install Node.js to use this script"
+    exit 1
+fi
+
+if ! command -v npm &> /dev/null; then
+    echo -e "${RED}Error: npm is not installed${NC}"
+    echo "Please install npm to use this script"
+    exit 1
+fi
 
 # Get current version from package.json
-CURRENT_VERSION=$(node -p "require('./package.json').version")
+CURRENT_VERSION=$(node -p "require('./package.json').version" 2>/dev/null || true)
+if [ -z "$CURRENT_VERSION" ]; then
+    echo -e "${RED}Error: Unable to read current version from package.json${NC}"
+    exit 1
+fi
+
 echo -e "${BLUE}Current version:${NC} $CURRENT_VERSION"
+
+IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
+MAJOR="${VERSION_PARTS[0]:-}"
+MINOR="${VERSION_PARTS[1]:-}"
+PATCH_RAW="${VERSION_PARTS[2]:-}"
+PATCH="${PATCH_RAW%%[^0-9]*}"
+
+if [[ -z "$MAJOR" || -z "$MINOR" || -z "$PATCH" ]]; then
+    echo -e "${RED}Error: Current version '$CURRENT_VERSION' is not a valid semantic version${NC}"
+    exit 1
+fi
+
+if ! [[ "$MAJOR" =~ ^[0-9]+$ ]] || ! [[ "$MINOR" =~ ^[0-9]+$ ]] || ! [[ "$PATCH" =~ ^[0-9]+$ ]]; then
+    echo -e "${RED}Error: Current version '$CURRENT_VERSION' is not a valid semantic version${NC}"
+    exit 1
+fi
+
+if [[ "$PATCH_RAW" != "$PATCH" ]]; then
+    echo -e "${RED}Error: Current version '$CURRENT_VERSION' contains unsupported pre-release or metadata${NC}"
+    exit 1
+fi
+
+CURRENT_MAJOR=$MAJOR
+CURRENT_MINOR=$MINOR
+CURRENT_PATCH=$PATCH
 
 # Calculate new version
 if [[ $VERSION_TYPE =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    # Specific version provided
     NEW_VERSION=$VERSION_TYPE
+elif [[ $VERSION_TYPE =~ ^[0-9]+\.[0-9]+\.[0-9]+- ]]; then
+    echo -e "${RED}Error: Pre-release versions (e.g., 1.0.0-beta) are not supported${NC}"
+    echo "Chrome extensions require standard semantic versioning (MAJOR.MINOR.PATCH)"
+    exit 1
+elif [[ $VERSION_TYPE =~ ^[0-9]+\.[0-9]+\.[0-9]+\+ ]]; then
+    echo -e "${RED}Error: Build metadata versions (e.g., 1.0.0+build.123) are not supported${NC}"
+    echo "Chrome extensions require standard semantic versioning (MAJOR.MINOR.PATCH)"
+    exit 1
 else
-    # Calculate version bump
-    IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
-    MAJOR="${VERSION_PARTS[0]}"
-    MINOR="${VERSION_PARTS[1]}"
-    PATCH="${VERSION_PARTS[2]}"
-
-    case $VERSION_TYPE in
+    case "$VERSION_TYPE" in
         major)
-            MAJOR=$((MAJOR + 1))
-            MINOR=0
-            PATCH=0
+            CURRENT_MAJOR=$((CURRENT_MAJOR + 1))
+            CURRENT_MINOR=0
+            CURRENT_PATCH=0
             ;;
         minor)
-            MINOR=$((MINOR + 1))
-            PATCH=0
+            CURRENT_MINOR=$((CURRENT_MINOR + 1))
+            CURRENT_PATCH=0
             ;;
         patch)
-            PATCH=$((PATCH + 1))
+            CURRENT_PATCH=$((CURRENT_PATCH + 1))
             ;;
         *)
             echo -e "${RED}Error: Invalid version type '$VERSION_TYPE'${NC}"
             usage
             ;;
     esac
-
-    NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+    NEW_VERSION="${CURRENT_MAJOR}.${CURRENT_MINOR}.${CURRENT_PATCH}"
 fi
 
 echo -e "${GREEN}New version:${NC} $NEW_VERSION"
 
-# Confirm with user
-read -p "$(echo -e ${YELLOW}Continue with version bump? [y/N]:${NC} )" -n 1 -r
+printf "%b" "${YELLOW}Continue with version bump? [y/N]: ${NC}"
+read -n 1 -r || true
 echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+if [[ ! ${REPLY:-} =~ ^[Yy]$ ]]; then
     echo -e "${RED}Aborted${NC}"
     exit 1
 fi
 
 # Update package.json
 echo -e "${BLUE}Updating package.json...${NC}"
-if command -v jq &> /dev/null; then
-    # Use jq if available (cleaner)
-    jq ".version = \"$NEW_VERSION\"" package.json > package.json.tmp && mv package.json.tmp package.json
-else
-    # Fallback to sed
-    sed -i.bak "s/\"version\": \"$CURRENT_VERSION\"/\"version\": \"$NEW_VERSION\"/" package.json
-    rm -f package.json.bak
-fi
+update_json_version "package.json"
 
 # Update manifest.json
 echo -e "${BLUE}Updating manifest.json...${NC}"
-if command -v jq &> /dev/null; then
-    jq ".version = \"$NEW_VERSION\"" manifest.json > manifest.json.tmp && mv manifest.json.tmp manifest.json
-else
-    sed -i.bak "s/\"version\": \"$CURRENT_VERSION\"/\"version\": \"$NEW_VERSION\"/" manifest.json
-    rm -f manifest.json.bak
-fi
+update_json_version "manifest.json"
 
 # Update package-lock.json
 echo -e "${BLUE}Updating package-lock.json...${NC}"
-npm install --package-lock-only
+if ! npm install --package-lock-only; then
+    echo -e "${RED}Error: Failed to update package-lock.json${NC}"
+    echo "Please check your package.json for errors"
+    exit 1
+fi
 
 # Verify versions match
 PACKAGE_VERSION=$(node -p "require('./package.json').version")
@@ -138,8 +219,8 @@ echo "  6. Tag: git tag $NEW_VERSION"
 echo "  7. Push tag: git push origin $NEW_VERSION"
 echo ""
 echo -e "${GREEN}Or run this shortcut:${NC}"
-echo "  git add package*.json manifest.json && \\"
-echo "  git commit -m \"Bump version to $NEW_VERSION\" && \\"
-echo "  git push && \\"
-echo "  git tag $NEW_VERSION && \\"
+echo "  git add package*.json manifest.json && \\\"
+echo "  git commit -m \"Bump version to $NEW_VERSION\" && \\\"
+echo "  git push && \\\"
+echo "  git tag $NEW_VERSION && \\\"
 echo "  git push origin $NEW_VERSION"

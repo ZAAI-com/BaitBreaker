@@ -28,13 +28,13 @@ git tag v2.0.0   # Don't use "v" prefix
 
 ## GitHub Actions Trigger
 
-The publish workflow triggers on tags matching the pattern: `*.*.*`
+The publish workflow triggers on tags matching the pattern: `'[0-9]+.[0-9]+.[0-9]+'`
 
 ```yaml
 on:
   push:
     tags:
-      - '*.*.*'  # Matches: 1.0.0, 1.2.3, 2.0.0, etc.
+      - '[0-9]+.[0-9]+.[0-9]+'  # Matches: 1.0.0, 1.2.3, 2.0.0, etc.
 ```
 
 ## Usage Examples

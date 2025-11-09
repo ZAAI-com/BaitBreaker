@@ -14,13 +14,13 @@ This is a condensed guide to get you publishing quickly. For detailed informatio
 ## 1️⃣ Get Your Credentials (5 minutes)
 
 ### Chrome Extension ID
-```
+```bash
 Go to: https://chrome.google.com/webstore/devconsole
 Copy from URL: /devconsole/.../YOUR_EXTENSION_ID
 ```
 
 ### OAuth Credentials
-```
+```bash
 1. https://console.cloud.google.com/
 2. APIs & Services → Credentials
 3. Create OAuth client ID → Desktop app
@@ -30,10 +30,10 @@ Copy from URL: /devconsole/.../YOUR_EXTENSION_ID
 ### Refresh Token
 ```bash
 # Visit this URL (replace YOUR_CLIENT_ID):
-https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/chromewebstore&client_id=YOUR_CLIENT_ID&redirect_uri=urn:ietf:wg:oauth:2.0:oob
+https://accounts.google.com/o/oauth2/v2/auth?response_type=code&scope=https://www.googleapis.com/auth/chromewebstore&client_id=YOUR_CLIENT_ID&redirect_uri=urn:ietf:wg:oauth:2.0:oob
 
 # After auth, use the code to get refresh token:
-curl "https://accounts.google.com/o/oauth2/token" \
+curl "https://oauth2.googleapis.com/token" \
   -d "client_id=YOUR_CLIENT_ID" \
   -d "client_secret=YOUR_CLIENT_SECRET" \
   -d "code=YOUR_AUTH_CODE" \
