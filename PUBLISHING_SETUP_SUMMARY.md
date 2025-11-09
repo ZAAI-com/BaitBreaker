@@ -133,7 +133,7 @@ git push origin 1.0.1
 Watch progress at: **Actions → Publish to Chrome Web Store**
 
 ### Chrome Web Store Dashboard
-Check status at: https://chrome.google.com/webstore/devconsole
+Check status at: [Chrome Web Store Dashboard](https://chrome.google.com/webstore/devconsole)
 
 ### GitHub Releases
 View releases at: **Releases** tab in your repository
@@ -200,7 +200,7 @@ git push && git tag 1.1.0 && git push origin 1.1.0
 
 ## 🔍 File Structure
 
-```
+```text
 .github/
 ├── workflows/
 │   ├── ci.yml              # Continuous Integration

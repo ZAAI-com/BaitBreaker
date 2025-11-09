@@ -3,22 +3,30 @@ name: Publish to Chrome Web Store
 on:
   push:
     tags:
-      - '*.*.*'  # Triggers on version tags like 1.0.0, 1.2.3, etc.
+      - '[0-9]+.[0-9]+.[0-9]+'  # Trigger on semantic version tags like 1.2.3
   workflow_dispatch:  # Allows manual triggering from GitHub UI
     inputs:
       submit_for_review:
         description: 'Submit for review after upload'
         required: false
-        default: 'true'
+        default: true
         type: boolean
 
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Validate tag format
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          if [[ ! "${GITHUB_REF_NAME}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match MAJOR.MINOR.PATCH" >&2
+            exit 1
+          fi
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -49,10 +57,10 @@ jobs:
           client-id: ${{ secrets.CHROME_CLIENT_ID }}
           client-secret: ${{ secrets.CHROME_CLIENT_SECRET }}
           refresh-token: ${{ secrets.CHROME_REFRESH_TOKEN }}
-          publish: ${{ github.event.inputs.submit_for_review != 'false' }}
+          publish: ${{ github.event.inputs.submit_for_review != false }}
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: baitbreaker-${{ github.ref_name }}.zip
@@ -67,4 +75,4 @@ jobs:
         run: |
           echo "✅ Extension published successfully!"
           echo "Version: ${{ github.ref_name }}"
-          echo "Extension ID: ${{ secrets.CHROME_EXTENSION_ID }}"
+

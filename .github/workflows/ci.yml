@@ -39,7 +39,7 @@ jobs:
         run: npm run test:coverage
 
       - name: Upload coverage reports
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         if: always()
         with:
           fail_ci_if_error: false
@@ -72,7 +72,7 @@ jobs:
           echo "✅ Build validation passed"
 
       - name: Create extension artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: extension-build
           path: dist/
@@ -85,8 +85,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Check version consistency
         run: |

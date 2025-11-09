@@ -65,12 +65,12 @@ npm install -g chrome-webstore-upload-cli
 # Step 1: Get authorization code
 # Replace YOUR_CLIENT_ID with your actual client ID
 # Visit this URL in your browser:
-https://accounts.google.com/o/oauth2/auth?response_type=code&scope=https://www.googleapis.com/auth/chromewebstore&client_id=YOUR_CLIENT_ID&redirect_uri=urn:ietf:wg:oauth:2.0:oob
+https://accounts.google.com/o/oauth2/v2/auth?response_type=code&scope=https://www.googleapis.com/auth/chromewebstore&client_id=YOUR_CLIENT_ID&redirect_uri=urn:ietf:wg:oauth:2.0:oob
 
 # Step 2: After authorizing, copy the authorization code from the page
 
 # Step 3: Exchange the authorization code for a refresh token
-curl "https://accounts.google.com/o/oauth2/token" \
+curl "https://oauth2.googleapis.com/token" \
   -d "client_id=YOUR_CLIENT_ID" \
   -d "client_secret=YOUR_CLIENT_SECRET" \
   -d "code=YOUR_AUTHORIZATION_CODE" \
@@ -102,7 +102,7 @@ Go to your GitHub repository settings:
 
 ### Automated Publishing (Recommended)
 
-**Option A: Tag-based Publishing**
+### Option A: Tag-based Publishing
 
 ```bash
 # Update version in package.json and manifest.json first!
@@ -119,7 +119,7 @@ This automatically:
 - ✅ Submits for review
 - ✅ Creates a GitHub Release with the ZIP
 
-**Option B: Manual Trigger**
+### Option B: Manual Trigger
 
 1. Go to **Actions** tab in your GitHub repository
 2. Select "Publish to Chrome Web Store" workflow
@@ -152,7 +152,7 @@ zip -r baitbreaker.zip .
 on:
   push:
     tags:
-      - '*.*.*'
+      - '[0-9]+.[0-9]+.[0-9]+'
 ```
 
 - Triggers automatically on version tags (e.g., `1.0.0`, `2.1.3`)
